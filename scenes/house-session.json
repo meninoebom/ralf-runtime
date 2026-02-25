@@ -1,0 +1,33 @@
+{
+  "name": "house-session",
+  "dancers": [
+    { "id": "maya", "input": { "type": "mediapipe", "port": 6448 } }
+  ],
+  "readings": [
+    {
+      "id": "hitting-the-beat",
+      "mix": { "jerkiness": 0.6, "velocity": 0.3 },
+      "gate": { "jerkiness": { "above": 0.2 } },
+      "intents": ["add_energy"]
+    },
+    {
+      "id": "energy-level",
+      "mix": { "velocity": 0.5, "jerkiness": 0.5 },
+      "intents": [
+        { "intent": "strip_energy", "below": 0.3 },
+        { "intent": "add_energy", "above": 0.7 }
+      ]
+    }
+  ],
+  "intents": {
+    "add_energy": [
+      { "action": "fire_next_scene", "weight": 2 },
+      { "action": "unmute_track", "args": { "track": "perc" }, "weight": 3 }
+    ],
+    "strip_energy": [
+      { "action": "filter_cutoff", "weight": 3 },
+      { "action": "mute_track", "args": { "track": "perc" }, "weight": 1 }
+    ]
+  },
+  "sonic_world": { "type": "ableton", "port": 12000 }
+}
