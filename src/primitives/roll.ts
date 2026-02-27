@@ -6,13 +6,27 @@ import type { IntentOption } from "../types.js";
  * This is what makes Ralf feel like a conversation, not a remote control.
  * Same intent, different outcome each time — shaped by tendencies.
  *
+ * When deterministic=true (learning mode), always picks the highest-weight
+ * option. Ties go to the first occurrence.
+ *
  * Returns null if the pool is empty or all weights are zero.
  */
-export function roll(options: IntentOption[]): IntentOption | null {
+export function roll(options: IntentOption[], deterministic = false): IntentOption | null {
   if (options.length === 0) return null;
 
   const totalWeight = options.reduce((sum, opt) => sum + Math.max(0, opt.weight), 0);
   if (totalWeight === 0) return null;
+
+  if (deterministic) {
+    let best: IntentOption | null = null;
+    for (const option of options) {
+      if (option.weight <= 0) continue;
+      if (!best || option.weight > best.weight) {
+        best = option;
+      }
+    }
+    return best;
+  }
 
   let r = Math.random() * totalWeight;
 

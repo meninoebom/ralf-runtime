@@ -2,6 +2,8 @@ import { Runtime } from "./engine/runtime.js";
 import { OscServer } from "./transport/osc-server.js";
 import { WsServer } from "./transport/ws-server.js";
 import { loadScene, listScenes } from "./scenes/loader.js";
+import { validateScene } from "./scenes/validator.js";
+import { log, setLogFile } from "./logging.js";
 import type { SceneConfig, QualityName } from "./types.js";
 
 const OSC_IN_PORT = 6449;
@@ -9,13 +11,31 @@ const OSC_OUT_PORT = 12000;
 const WS_PORT = 8765;
 
 async function main() {
+  const startTime = new Date().toISOString();
+  log("scene", `Ralf runtime starting at ${startTime}`);
+
+  // Optional log file
+  const logFile = process.env.RALF_LOG_FILE;
+  if (logFile) {
+    setLogFile(logFile);
+    log("scene", `Logging to file: ${logFile}`);
+  }
+
   // Load a scene — use first available or a default
   let scene: SceneConfig;
   const scenes = await listScenes();
 
   if (scenes.length > 0) {
     scene = await loadScene(scenes[0]);
-    console.log(`Loaded scene: ${scene.name}`);
+    log("scene", `Loaded scene: ${scene.name}`);
+
+    // Validate scene
+    const errors = validateScene(scene);
+    if (errors.length > 0) {
+      for (const err of errors) {
+        log("error", `Scene validation: ${err.path} — ${err.message}`);
+      }
+    }
   } else {
     // Default scene for quick start
     scene = {
@@ -31,13 +51,13 @@ async function main() {
       ],
       intents: {
         add_energy: [
-          { action: "filter_cutoff", weight: 3 },
-          { action: "unmute_track", args: { track: "perc" }, weight: 2 },
+          { action: "set/filter_cutoff", weight: 3 },
+          { action: "trigger/unmute_track", args: { track: "perc" }, weight: 2 },
         ],
       },
-      sonic_world: { type: "osc", port: OSC_OUT_PORT },
+      translator: { type: "osc", port: OSC_OUT_PORT },
     };
-    console.log("No scenes found, using default");
+    log("scene", "No scenes found, using default");
   }
 
   const runtime = new Runtime(scene);
@@ -50,20 +70,40 @@ async function main() {
   osc.setGestureHandler((dancerId, gesture) => {
     runtime.receiveGesture(dancerId, gesture);
   });
+  osc.setStateHandler((key, value) => {
+    switch (key) {
+      case "tempo":
+        runtime.updateTranslatorState({ tempo: value });
+        break;
+      case "playing":
+        runtime.updateTranslatorState({ playing: value !== 0 });
+        break;
+      case "scene":
+        runtime.updateTranslatorState({ scene: value });
+        break;
+    }
+  });
+  osc.setPingHandler((processName) => {
+    log("connect", `Ping from ${processName}`);
+  });
 
   // WebSocket transport
   const ws = new WsServer(WS_PORT);
   ws.setLoadSceneHandler((newScene) => {
     runtime.loadScene(newScene);
     runtime.start();
-    console.log(`Scene loaded: ${newScene.name}`);
+    log("scene", `Scene loaded via WebSocket: ${newScene.name}`);
   });
   ws.setGetStateHandler(() => runtime.getState());
+  ws.setTranslatorStateHandler((update) => {
+    runtime.updateTranslatorState(update);
+  });
 
   // Wire outputs
   runtime.setActHandler((msg) => {
     osc.send(msg);
     ws.broadcastAct(msg);
+    log("act", msg.address, { args: msg.args });
   });
 
   // Broadcast state to WebSocket clients at ~10fps (not every tick)
@@ -88,6 +128,7 @@ async function main() {
 │  OSC out:    localhost:${OSC_OUT_PORT}       │
 │  WebSocket:  localhost:${WS_PORT}        │
 │  Scene:      ${scene.name.padEnd(22)}│
+│  Started:    ${startTime.slice(11, 19).padEnd(22)}│
 │                                     │
 │  The brain is running.              │
 └─────────────────────────────────────┘
@@ -95,7 +136,7 @@ async function main() {
 
   // Graceful shutdown
   process.on("SIGINT", () => {
-    console.log("\nShutting down...");
+    log("scene", "Shutting down...");
     runtime.stop();
     osc.stop();
     ws.stop();
@@ -103,4 +144,8 @@ async function main() {
   });
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  log("error", `Fatal: ${err.message}`);
+  console.error(err);
+  process.exit(1);
+});

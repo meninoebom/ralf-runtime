@@ -12,6 +12,8 @@ type QualityHandler = (
   value: number
 ) => void;
 type GestureHandler = (dancerId: string, gesture: string) => void;
+type StateMessageHandler = (key: string, value: number) => void;
+type PingHandler = (processName: string) => void;
 
 /**
  * Minimal OSC server using raw UDP.
@@ -19,15 +21,20 @@ type GestureHandler = (dancerId: string, gesture: string) => void;
  * Listens for:
  *   /ralf/quality/<dancerId>/<qualityName> <float>
  *   /ralf/gesture/<dancerId> <string>
+ *   /ralf/state/<key> <number>
+ *   /ralf/ping <string>
  *
  * Sends:
  *   /ralf/act/* messages to the configured output port.
+ *   /ralf/pong <string> in response to ping.
  */
 export class OscServer {
   private socket: dgram.Socket;
   private outPort: number;
   private onQuality: QualityHandler | null = null;
   private onGesture: GestureHandler | null = null;
+  private onStateMessage: StateMessageHandler | null = null;
+  private onPing: PingHandler | null = null;
 
   constructor(
     private listenPort: number,
@@ -45,6 +52,14 @@ export class OscServer {
     this.onGesture = handler;
   }
 
+  setStateHandler(handler: StateMessageHandler) {
+    this.onStateMessage = handler;
+  }
+
+  setPingHandler(handler: PingHandler) {
+    this.onPing = handler;
+  }
+
   start() {
     this.socket.on("message", (buf) => {
       const msg = this.parseOsc(buf);
@@ -53,12 +68,17 @@ export class OscServer {
     });
 
     this.socket.bind(this.listenPort, () => {
-      console.log(`OSC listening on port ${this.listenPort}`);
+      // Binding complete
     });
   }
 
   send(msg: ActMessage) {
     const buf = this.encodeOsc(msg.address, msg.args);
+    this.socket.send(buf, this.outPort, "127.0.0.1");
+  }
+
+  sendPong(processName: string) {
+    const buf = this.encodeOsc("/ralf/pong", [processName]);
     this.socket.send(buf, this.outPort, "127.0.0.1");
   }
 
@@ -76,15 +96,24 @@ export class OscServer {
       this.onQuality?.(dancerId, quality, value);
     }
     // /ralf/gesture/<dancerId>
-    else if (
-      parts[0] === "ralf" &&
-      parts[1] === "gesture" &&
-      parts.length === 3
-    ) {
+    else if (parts[0] === "ralf" && parts[1] === "gesture" && parts.length === 3) {
       const dancerId = parts[2];
       const gesture =
         typeof msg.args[0] === "string" ? msg.args[0] : String(msg.args[0]);
       this.onGesture?.(dancerId, gesture);
+    }
+    // /ralf/state/<key> (tempo, playing, scene)
+    else if (parts[0] === "ralf" && parts[1] === "state" && parts.length === 3) {
+      const key = parts[2];
+      const value = typeof msg.args[0] === "number" ? msg.args[0] : 0;
+      this.onStateMessage?.(key, value);
+    }
+    // /ralf/ping
+    else if (parts[0] === "ralf" && parts[1] === "ping") {
+      const processName =
+        typeof msg.args[0] === "string" ? msg.args[0] : "unknown";
+      this.onPing?.(processName);
+      this.sendPong(processName);
     }
   }
 

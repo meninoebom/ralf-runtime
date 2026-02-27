@@ -1,16 +1,35 @@
 // ─── Scene Config (the JSON users author) ───────────────────────────────────
 
+export interface SceneSettings {
+  adaptive_range_decay?: number;   // default 0.001
+  hysteresis_band?: number;        // default 0.05
+  staleness_frames?: number;       // default 90
+  smoothing_min_cutoff?: number;   // default 1.0
+  smoothing_beta?: number;         // default 0.007
+}
+
 export interface SceneConfig {
+  version?: number;
   name: string;
+  settings?: SceneSettings;
   dancers: DancerConfig[];
   readings: ReadingConfig[];
-  intents: Record<string, IntentOption[]>;
-  sonic_world: SonicWorldConfig;
+  intents: Record<string, IntentOption[] | IntentPoolConfig>;
+  translator: TranslatorConfig;
+  /** @deprecated Use `translator` instead */
+  sonic_world?: SonicWorldConfig;
+}
+
+export interface IntentPoolConfig {
+  deterministic?: boolean;  // learning mode — highest weight wins
+  pool: IntentOption[];
 }
 
 export interface DancerConfig {
   id: string;
-  input: { type: string; port: number };
+  input?: { type: string; port: number };
+  adapter?: string;
+  port?: number;
 }
 
 export interface ReadingConfig {
@@ -18,6 +37,8 @@ export interface ReadingConfig {
   mix: Record<string, number>; // quality -> weight
   gate?: Record<string, { above?: number; below?: number }>;
   intents?: ReadingIntent[];
+  on_exit?: string[];          // intent names to fire on falling edge
+  trajectory?: { window: number; above?: number; below?: number };
 }
 
 /**
@@ -32,12 +53,18 @@ export interface ReadingIntentWithThreshold {
   intent: string;
   above?: number;
   below?: number;
+  mode?: "edge" | "continuous";  // default "edge"
 }
 
 export interface IntentOption {
   action: string;
   args?: Record<string, string | number>;
   weight: number;
+}
+
+export interface TranslatorConfig {
+  type: string;
+  port?: number;
 }
 
 export interface SonicWorldConfig {
@@ -50,11 +77,18 @@ export interface SonicWorldConfig {
 
 export type QualityName =
   | "velocity"
+  | "acceleration"
   | "jerkiness"
+  | "energy"
+  | "spatial_extent"
   | "contraction"
-  | "verticality"
   | "symmetry"
-  | "coherence";
+  | "coherence"
+  | "verticality"
+  | "heading"
+  | "stillness"
+  | "periodicity"
+  | "groundedness";
 
 export interface DancerState {
   id: string;
@@ -74,13 +108,24 @@ export interface ActMessage {
   args: (string | number)[];
 }
 
+export interface TranslatorState {
+  tempo: number;
+  playing: boolean;
+  scene: number;
+}
+
 // ─── Runtime state (shared across engine + transport) ───────────────────────
 
 export interface RuntimeState {
   dancers: Map<string, DancerState>;
   readings: ReadingValue[];
   tick: number;
+  translatorState: TranslatorState;
 }
+
+// ─── Hysteresis state for gates ─────────────────────────────────────────────
+
+export type HysteresisState = Map<string, boolean>; // gate key -> currently active
 
 // ─── Accumulator ────────────────────────────────────────────────────────────
 

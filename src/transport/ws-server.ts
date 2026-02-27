@@ -1,17 +1,18 @@
 import { WebSocketServer, WebSocket } from "ws";
-import type { RuntimeState, ActMessage, SceneConfig } from "../types.js";
+import type { RuntimeState, ActMessage, SceneConfig, TranslatorState } from "../types.js";
 
 /**
  * WebSocket server for the Performance Console.
  *
  * Broadcasts runtime state to all connected clients.
- * Accepts commands: loadScene, getState.
+ * Accepts commands: loadScene, getState, updateState.
  */
 export class WsServer {
   private wss: WebSocketServer | null = null;
   private clients = new Set<WebSocket>();
   private onLoadScene: ((scene: SceneConfig) => void) | null = null;
   private onGetState: (() => RuntimeState) | null = null;
+  private onTranslatorState: ((update: Partial<TranslatorState>) => void) | null = null;
 
   constructor(private port: number) {}
 
@@ -23,14 +24,15 @@ export class WsServer {
     this.onGetState = handler;
   }
 
+  setTranslatorStateHandler(handler: (update: Partial<TranslatorState>) => void) {
+    this.onTranslatorState = handler;
+  }
+
   start() {
     this.wss = new WebSocketServer({ port: this.port });
 
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
-      console.log(
-        `WebSocket client connected (${this.clients.size} total)`
-      );
 
       ws.on("message", (data) => {
         try {
@@ -45,8 +47,6 @@ export class WsServer {
         this.clients.delete(ws);
       });
     });
-
-    console.log(`WebSocket server on port ${this.port}`);
   }
 
   broadcastState(state: RuntimeState) {
@@ -76,6 +76,7 @@ export class WsServer {
       dancers: Object.fromEntries(state.dancers),
       readings: state.readings,
       tick: state.tick,
+      translatorState: state.translatorState,
     });
   }
 
@@ -90,6 +91,18 @@ export class WsServer {
         if (state) {
           ws.send(this.serializeState(state));
         }
+        break;
+      }
+      case "updateState": {
+        // Bridge translator state from WebSocket clients
+        const update = msg.state as Partial<TranslatorState>;
+        if (update) {
+          this.onTranslatorState?.(update);
+        }
+        break;
+      }
+      case "ping": {
+        ws.send(JSON.stringify({ type: "pong" }));
         break;
       }
     }

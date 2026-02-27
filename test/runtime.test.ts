@@ -8,7 +8,7 @@ function makeScene(overrides: Partial<SceneConfig> = {}): SceneConfig {
     dancers: [{ id: "d1", input: { type: "mediapipe", port: 6448 } }],
     readings: [],
     intents: {},
-    sonic_world: { type: "osc", port: 12000 },
+    translator: { type: "osc", port: 12000 },
     ...overrides,
   };
 }

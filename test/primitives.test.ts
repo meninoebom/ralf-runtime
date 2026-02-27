@@ -10,7 +10,7 @@ import { act } from "../src/primitives/act.js";
 
 describe("AdaptiveRange", () => {
   it("normalizes values to 0-1", () => {
-    const ar = new AdaptiveRange(0);
+    const ar = new AdaptiveRange(0, 0, 0);
     ar.update(0);
     ar.update(100);
     const mid = ar.update(50);
@@ -18,7 +18,7 @@ describe("AdaptiveRange", () => {
   });
 
   it("returns 0.5 when range is zero", () => {
-    const ar = new AdaptiveRange(0);
+    const ar = new AdaptiveRange(0, 0, 0);
     expect(ar.update(5)).toBe(0.5);
   });
 });
