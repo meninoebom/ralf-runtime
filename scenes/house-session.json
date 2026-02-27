@@ -21,18 +21,17 @@
     {
       "id": "filter-sweep",
       "mix": { "velocity": 1.0 },
-      "continuous": true,
-      "intents": ["shape_filter"]
+      "intents": [{ "intent": "shape_filter", "mode": "continuous", "above": 0.0 }]
     }
   ],
   "intents": {
     "add_energy": [
-      { "action": "fire_next_scene", "weight": 2 },
-      { "action": "unmute_track", "args": { "track": "perc" }, "weight": 3 }
+      { "action": "trigger/fire_next_scene", "weight": 2 },
+      { "action": "trigger/unmute_track", "args": { "track": "perc" }, "weight": 3 }
     ],
     "strip_energy": [
-      { "action": "filter_cutoff", "weight": 3 },
-      { "action": "mute_track", "args": { "track": "perc" }, "weight": 1 }
+      { "action": "set/filter_cutoff", "weight": 3 },
+      { "action": "trigger/mute_track", "args": { "track": "perc" }, "weight": 1 }
     ],
     "shape_filter": [
       { "action": "set/filter_cutoff", "weight": 1 }
