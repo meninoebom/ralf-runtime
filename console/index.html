@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ralf — Performance Console</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    background: #0a0a0a; color: #ccc;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 24px;
+  }
+  h1 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+  .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+
+  .status-row {
+    display: flex; gap: 20px; margin-bottom: 16px; font-size: 11px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .status-item { display: flex; gap: 6px; align-items: center; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #333; display: inline-block;
+  }
+  .dot.connected { background: #4a4; }
+  .dot.disconnected { background: #a44; }
+  .dot.reconnecting { background: #aa4; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+  .top-bar {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
+  }
+  button {
+    font-family: inherit; font-size: 12px; padding: 8px 16px;
+    border: 1px solid #333; border-radius: 4px; cursor: pointer;
+    background: #1a1a1a; color: #ccc; transition: all 0.15s;
+  }
+  button:hover { background: #252525; border-color: #555; }
+
+  .panels {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; width: 100%; max-width: 1100px; margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: #111; border: 1px solid #222; border-radius: 6px;
+    padding: 12px; min-height: 120px;
+  }
+  .panel-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: #555; margin-bottom: 10px;
+  }
+
+  /* Quality / reading bars */
+  .bar-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 5px; font-size: 11px;
+  }
+  .bar-label { color: #888; min-width: 100px; }
+  .bar-label.dim { color: #444; }
+  .bar-bg {
+    flex: 1; height: 6px; background: #1a1a1a;
+    border-radius: 3px; overflow: hidden; margin: 0 8px;
+  }
+  .bar-bg.tall { height: 8px; }
+  .bar-fill {
+    height: 100%; background: #4a4; border-radius: 3px;
+    transition: width 0.15s;
+  }
+  .bar-fill.dim { background: #333; }
+  .bar-value { font-size: 10px; color: #555; width: 36px; text-align: right; }
+
+  .active-badge {
+    width: 6px; height: 6px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .active-badge.on { background: #4a4; }
+  .active-badge.off { background: #333; }
+
+  .dancer-header { font-size: 12px; color: #5c5; margin: 8px 0 4px; }
+  .dancer-header:first-child { margin-top: 0; }
+
+  /* Act log */
+  .log {
+    font-size: 10px; line-height: 1.6; color: #666;
+    max-height: 260px; overflow-y: auto;
+  }
+  .log-entry { white-space: nowrap; }
+  .log-entry .addr { color: #7a7; }
+  .log-entry .args { color: #77a; }
+  .log-entry .ts { color: #444; }
+  .rate { font-size: 10px; color: #555; float: right; }
+
+  /* Info rows */
+  .info-row {
+    display: flex; justify-content: space-between; font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .info-label { color: #666; }
+  .info-value { color: #ccc; }
+  .info-value.green { color: #5c5; }
+
+  /* Scene editor */
+  .editor-section {
+    width: 100%; max-width: 1100px; margin-bottom: 16px;
+  }
+  .editor-toggle {
+    font-size: 12px; color: #888; cursor: pointer;
+    padding: 8px 0; user-select: none;
+  }
+  .editor-toggle:hover { color: #ccc; }
+  .editor-body { display: none; }
+  .editor-body.open { display: block; }
+
+  .editor-group {
+    background: #111; border: 1px solid #222; border-radius: 6px;
+    padding: 12px; margin-bottom: 12px;
+  }
+  .editor-group-title {
+    font-size: 11px; color: #5c5; margin-bottom: 8px; font-weight: 600;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px; font-size: 11px;
+  }
+  .slider-row label { color: #888; min-width: 120px; }
+  .slider-row input[type="range"] {
+    flex: 1; max-width: 200px; accent-color: #4a4;
+    height: 4px; -webkit-appearance: none; appearance: none;
+    background: #222; border-radius: 2px; outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: #4a4; cursor: pointer;
+  }
+  .slider-row .slider-val { color: #555; width: 36px; text-align: right; }
+  .slider-row input[type="checkbox"] { accent-color: #4a4; }
+
+  .save-btn {
+    background: #1a3a1a; border-color: #2a5a2a; color: #5c5; font-weight: 600;
+  }
+  .save-btn:hover { background: #254025; }
+  .save-btn.flash { background: #2a5a2a; color: #fff; }
+
+  .intent-actions { margin-left: 16px; }
+  .intent-header { font-size: 11px; color: #aaa; margin: 6px 0 2px; }
+  .intent-mode { font-size: 10px; color: #666; margin-left: 8px; }
+
+  .no-data { font-size: 11px; color: #444; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>RALF Performance Console</h1>
+<div class="subtitle">runtime dashboard + scene editor</div>
+
+<div class="top-bar">
+  <button onclick="reconnect()">Reconnect</button>
+  <input id="ws-url" type="text" value="ws://localhost:8765"
+    style="font-family:inherit;font-size:11px;background:#111;color:#888;border:1px solid #333;border-radius:4px;padding:6px 10px;width:200px;">
+</div>
+
+<div class="status-row">
+  <div class="status-item">
+    <span class="dot" id="ws-dot"></span>
+    <span id="ws-status">disconnected</span>
+  </div>
+  <div class="status-item">
+    <span>scene:</span>
+    <span class="info-value green" id="scene-name">—</span>
+  </div>
+  <div class="status-item">
+    <span>tick:</span>
+    <span class="info-value" id="tick-count">0</span>
+  </div>
+  <div class="status-item">
+    <span>fps:</span>
+    <span class="info-value" id="frame-rate">0</span>
+  </div>
+</div>
+
+<div class="panels">
+  <!-- Left column -->
+  <div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-title">Dancers</div>
+      <div id="dancers"><span class="no-data">waiting for data…</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Readings</div>
+      <div id="readings"><span class="no-data">waiting for data…</span></div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-title">Acts <span class="rate" id="act-rate">0 acts/s</span></div>
+      <div class="log" id="act-log"><span class="no-data">no acts yet</span></div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-title">Translator</div>
+      <div id="translator-info">
+        <div class="info-row"><span class="info-label">tempo</span><span class="info-value" id="tr-tempo">—</span></div>
+        <div class="info-row"><span class="info-label">playing</span><span class="info-value" id="tr-playing">—</span></div>
+        <div class="info-row"><span class="info-label">scene</span><span class="info-value" id="tr-scene">—</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">System</div>
+      <div id="system-info">
+        <div class="info-row"><span class="info-label">connection</span><span class="info-value" id="sys-conn">disconnected</span></div>
+        <div class="info-row"><span class="info-label">frames received</span><span class="info-value" id="sys-frames">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene Editor -->
+<div class="editor-section">
+  <div class="editor-toggle" id="editor-toggle" onclick="toggleEditor()">▶ Scene Editor</div>
+  <div class="editor-body" id="editor-body">
+    <div id="reading-editor"></div>
+    <div id="intent-editor"></div>
+    <div style="margin-top:12px;">
+      <button class="save-btn" id="save-btn" onclick="saveScene()">Save Scene</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const RECONNECT_DELAY = 2000;
+const MAX_ACT_LOG = 50;
+const DEBOUNCE_MS = 100;
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let ws = null;
+let reconnectTimer = null;
+let latestState = null;
+let scene = null;
+let frameCount = 0;
+let lastFpsTime = performance.now();
+let fps = 0;
+let actTimestamps = [];
+let actLogEntries = [];
+let renderDirty = true;
+let editorDirty = false;
+let debounceTimer = null;
+
+// ─── WebSocket ───────────────────────────────────────────────────────────────
+function connect() {
+  const url = document.getElementById("ws-url").value;
+  if (ws && ws.readyState <= 1) ws.close();
+  setConnectionStatus("reconnecting");
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    setConnectionStatus("connected");
+    clearTimeout(reconnectTimer);
+    send({ type: "getState" });
+    send({ type: "getScene" });
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      switch (msg.type) {
+        case "state":
+          latestState = msg;
+          frameCount++;
+          renderDirty = true;
+          break;
+        case "act":
+          addAct(msg.address, msg.args || []);
+          renderDirty = true;
+          break;
+        case "scene":
+          scene = msg.scene;
+          rebuildEditor();
+          break;
+        case "ping":
+          send({ type: "pong", name: "console" });
+          break;
+      }
+    } catch (e) {
+      console.error("WS parse error:", e);
+    }
+  };
+
+  ws.onclose = () => {
+    setConnectionStatus("disconnected");
+    reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
+  };
+
+  ws.onerror = () => {};
+}
+
+function reconnect() {
+  clearTimeout(reconnectTimer);
+  connect();
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(obj));
+  }
+}
+
+function setConnectionStatus(status) {
+  document.getElementById("ws-dot").className = "dot " + status;
+  document.getElementById("ws-status").textContent = status;
+  document.getElementById("sys-conn").textContent = status;
+}
+
+// ─── Act log ─────────────────────────────────────────────────────────────────
+function addAct(address, args) {
+  const now = Date.now();
+  actTimestamps.push(now);
+  const time = new Date(now).toLocaleTimeString("en-US", { hour12: false, fractionalSecondDigits: 1 });
+  const argsStr = args.map(a => typeof a === "number" ? a.toFixed(2) : `"${a}"`).join(" ");
+  actLogEntries.unshift({ time, address, argsStr });
+  if (actLogEntries.length > MAX_ACT_LOG) actLogEntries.length = MAX_ACT_LOG;
+}
+
+function getActRate() {
+  const now = Date.now();
+  const cutoff = now - 1000;
+  actTimestamps = actTimestamps.filter(t => t > cutoff);
+  return actTimestamps.length;
+}
+
+// ─── Render loop ─────────────────────────────────────────────────────────────
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+  if (!renderDirty) return;
+  renderDirty = false;
+
+  // FPS calculation
+  const now = performance.now();
+  if (now - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+
+  document.getElementById("frame-rate").textContent = fps;
+  document.getElementById("sys-frames").textContent = frameCount;
+
+  if (latestState) renderState(latestState);
+  renderActLog();
+  document.getElementById("act-rate").textContent = getActRate() + " acts/s";
+}
+
+function renderState(s) {
+  // Tick
+  document.getElementById("tick-count").textContent = s.tick || 0;
+
+  // Translator
+  if (s.translatorState) {
+    const ts = s.translatorState;
+    document.getElementById("tr-tempo").textContent = ts.tempo ? Math.round(ts.tempo) + " BPM" : "—";
+    document.getElementById("tr-playing").textContent = ts.playing ? "playing" : "stopped";
+    document.getElementById("tr-scene").textContent = ts.scene !== undefined ? ts.scene : "—";
+    document.getElementById("scene-name").textContent = scene ? scene.name : (ts.scene !== undefined ? ts.scene : "—");
+  }
+
+  // Dancers
+  const dancersEl = document.getElementById("dancers");
+  const dancers = s.dancers || {};
+  const dancerIds = Object.keys(dancers);
+  if (dancerIds.length === 0) {
+    dancersEl.innerHTML = '<span class="no-data">no dancers</span>';
+  } else {
+    let html = "";
+    for (const id of dancerIds) {
+      const d = dancers[id];
+      html += `<div class="dancer-header">${id}</div>`;
+      const quals = d.qualities || {};
+      for (const [q, v] of Object.entries(quals)) {
+        const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
+        const dim = v < 0.01;
+        html += `<div class="bar-row">
+          <span class="bar-label${dim ? ' dim' : ''}">${q}</span>
+          <div class="bar-bg"><div class="bar-fill${dim ? ' dim' : ''}" style="width:${pct}%"></div></div>
+          <span class="bar-value">${v.toFixed(2)}</span>
+        </div>`;
+      }
+    }
+    dancersEl.innerHTML = html;
+  }
+
+  // Readings
+  const readingsEl = document.getElementById("readings");
+  const readings = s.readings || [];
+  if (readings.length === 0) {
+    readingsEl.innerHTML = '<span class="no-data">no readings</span>';
+  } else {
+    let html = "";
+    for (const r of readings) {
+      const pct = Math.round(Math.max(0, Math.min(1, r.value)) * 100);
+      html += `<div class="bar-row">
+        <span class="bar-label"><span class="active-badge ${r.active ? 'on' : 'off'}"></span>${r.id}</span>
+        <div class="bar-bg tall"><div class="bar-fill${r.active ? '' : ' dim'}" style="width:${pct}%"></div></div>
+        <span class="bar-value">${r.value.toFixed(2)}</span>
+      </div>`;
+    }
+    readingsEl.innerHTML = html;
+  }
+}
+
+function renderActLog() {
+  const logEl = document.getElementById("act-log");
+  if (actLogEntries.length === 0) {
+    logEl.innerHTML = '<span class="no-data">no acts yet</span>';
+    return;
+  }
+  let html = "";
+  for (const e of actLogEntries) {
+    html += `<div class="log-entry"><span class="ts">${e.time}</span> <span class="addr">${e.address}</span> <span class="args">${e.argsStr}</span></div>`;
+  }
+  logEl.innerHTML = html;
+}
+
+// ─── Scene Editor ────────────────────────────────────────────────────────────
+function toggleEditor() {
+  const body = document.getElementById("editor-body");
+  const toggle = document.getElementById("editor-toggle");
+  const open = body.classList.toggle("open");
+  toggle.textContent = (open ? "▼" : "▶") + " Scene Editor";
+}
+
+function rebuildEditor() {
+  if (!scene) return;
+  rebuildReadingEditor();
+  rebuildIntentEditor();
+}
+
+function rebuildReadingEditor() {
+  const el = document.getElementById("reading-editor");
+  const readings = scene.readings || [];
+  if (readings.length === 0) {
+    el.innerHTML = '<div class="editor-group"><span class="no-data">no readings in scene</span></div>';
+    return;
+  }
+
+  let html = "";
+  for (let ri = 0; ri < readings.length; ri++) {
+    const r = readings[ri];
+    html += `<div class="editor-group">`;
+    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
+
+    // Mix weights
+    const mix = r.mix || {};
+    for (const [q, w] of Object.entries(mix)) {
+      const val = typeof w === "number" ? w : (w && w.weight !== undefined ? w.weight : 0);
+      html += `<div class="slider-row">
+        <label>${q}</label>
+        <input type="range" min="0" max="1" step="0.01" value="${val}"
+          data-type="mix" data-ri="${ri}" data-quality="${q}">
+        <span class="slider-val">${val.toFixed(2)}</span>
+      </div>`;
+    }
+
+    // Gates — gate is Record<string, {above?, below?}>
+    if (r.gate) {
+      for (const [gq, gc] of Object.entries(r.gate)) {
+        if (gc.above !== undefined) {
+          html += `<div class="slider-row">
+            <label>gate ${gq} above</label>
+            <input type="range" min="0" max="1" step="0.01" value="${gc.above}"
+              data-type="gate-above" data-ri="${ri}" data-gq="${gq}">
+            <span class="slider-val">${gc.above.toFixed(2)}</span>
+          </div>`;
+        }
+        if (gc.below !== undefined) {
+          html += `<div class="slider-row">
+            <label>gate ${gq} below</label>
+            <input type="range" min="0" max="1" step="0.01" value="${gc.below}"
+              data-type="gate-below" data-ri="${ri}" data-gq="${gq}">
+            <span class="slider-val">${gc.below.toFixed(2)}</span>
+          </div>`;
+        }
+      }
+    }
+
+    // Show connected intents
+    if (r.intents && r.intents.length > 0) {
+      html += `<div style="font-size:10px;color:#555;margin-top:6px;">intents: ${r.intents.map(i => typeof i === 'string' ? i : i.intent).join(', ')}</div>`;
+    }
+
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+
+  // Attach listeners
+  el.querySelectorAll("input[type=range]").forEach(input => {
+    input.addEventListener("input", onReadingSlider);
+  });
+}
+
+function rebuildIntentEditor() {
+  const el = document.getElementById("intent-editor");
+  const intents = scene.intents || {};
+  const intentNames = Object.keys(intents);
+  if (intentNames.length === 0) {
+    el.innerHTML = '<div class="editor-group"><span class="no-data">no intents in scene</span></div>';
+    return;
+  }
+
+  let html = "";
+  for (const name of intentNames) {
+    const entry = intents[name];
+    // Intents can be IntentOption[] or IntentPoolConfig { pool, deterministic? }
+    const isPoolConfig = !Array.isArray(entry);
+    const actions = isPoolConfig ? (entry.pool || []) : entry;
+    const deterministic = isPoolConfig ? (entry.deterministic || false) : false;
+
+    // Normalize to IntentPoolConfig for editing
+    if (Array.isArray(entry)) {
+      scene.intents[name] = { pool: entry, deterministic: false };
+    }
+
+    html += `<div class="editor-group">`;
+    html += `<div class="editor-group-title">Intent: ${name}</div>`;
+    html += `<div class="slider-row">
+      <label>deterministic</label>
+      <input type="checkbox" data-type="intent-det" data-intent="${name}" ${deterministic ? "checked" : ""}>
+    </div>`;
+
+    for (let ai = 0; ai < actions.length; ai++) {
+      const a = actions[ai];
+      const actionName = a.action || "?";
+      const weight = a.weight || 1;
+      html += `<div class="slider-row intent-actions">
+        <label>${actionName}</label>
+        <input type="range" min="1" max="10" step="1" value="${weight}"
+          data-type="intent-weight" data-intent="${name}" data-ai="${ai}">
+        <span class="slider-val">${weight}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+
+  el.querySelectorAll("input[type=range]").forEach(input => {
+    input.addEventListener("input", onIntentSlider);
+  });
+  el.querySelectorAll("input[type=checkbox]").forEach(input => {
+    input.addEventListener("change", onIntentCheckbox);
+  });
+}
+
+function onReadingSlider(e) {
+  const input = e.target;
+  const val = parseFloat(input.value);
+  input.nextElementSibling.textContent = val.toFixed(2);
+
+  const ri = parseInt(input.dataset.ri);
+  const type = input.dataset.type;
+
+  if (type === "mix") {
+    const q = input.dataset.quality;
+    const mix = scene.readings[ri].mix;
+    if (typeof mix[q] === "number") {
+      mix[q] = val;
+    } else if (mix[q] && mix[q].weight !== undefined) {
+      mix[q].weight = val;
+    }
+  } else if (type === "gate-above") {
+    const gq = input.dataset.gq;
+    scene.readings[ri].gate[gq].above = val;
+  } else if (type === "gate-below") {
+    const gq = input.dataset.gq;
+    scene.readings[ri].gate[gq].below = val;
+  }
+
+  debounceSendScene("readings");
+}
+
+function onIntentSlider(e) {
+  const input = e.target;
+  const val = parseInt(input.value);
+  input.nextElementSibling.textContent = val;
+
+  const name = input.dataset.intent;
+  const ai = parseInt(input.dataset.ai);
+  const action = scene.intents[name].pool[ai];
+  if (action) action.weight = val;
+
+  debounceSendScene("intents");
+}
+
+function onIntentCheckbox(e) {
+  const input = e.target;
+  const name = input.dataset.intent;
+  scene.intents[name].deterministic = input.checked;
+  debounceSendScene("intents");
+}
+
+function debounceSendScene(section) {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const patch = {};
+    if (scene.readings) patch.readings = scene.readings;
+    if (scene.intents) patch.intents = scene.intents;
+    if (scene.settings) patch.settings = scene.settings;
+    send({ type: "updateScene", patch });
+  }, DEBOUNCE_MS);
+}
+
+function saveScene() {
+  send({ type: "saveScene" });
+  const btn = document.getElementById("save-btn");
+  btn.classList.add("flash");
+  btn.textContent = "Saved!";
+  setTimeout(() => {
+    btn.classList.remove("flash");
+    btn.textContent = "Save Scene";
+  }, 1200);
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+requestAnimationFrame(renderLoop);
+connect();
+</script>
+</body>
+</html>

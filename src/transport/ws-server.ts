@@ -13,6 +13,9 @@ export class WsServer {
   private onLoadScene: ((scene: SceneConfig) => void) | null = null;
   private onGetState: (() => RuntimeState) | null = null;
   private onTranslatorState: ((update: Partial<TranslatorState>) => void) | null = null;
+  private onUpdateScene: ((patch: Partial<SceneConfig>) => void) | null = null;
+  private onSaveScene: (() => Promise<void>) | null = null;
+  private onGetScene: (() => SceneConfig) | null = null;
 
   constructor(private port: number) {}
 
@@ -26,6 +29,18 @@ export class WsServer {
 
   setTranslatorStateHandler(handler: (update: Partial<TranslatorState>) => void) {
     this.onTranslatorState = handler;
+  }
+
+  setUpdateSceneHandler(handler: (patch: Partial<SceneConfig>) => void) {
+    this.onUpdateScene = handler;
+  }
+
+  setSaveSceneHandler(handler: () => Promise<void>) {
+    this.onSaveScene = handler;
+  }
+
+  setGetSceneHandler(handler: () => SceneConfig) {
+    this.onGetScene = handler;
   }
 
   start() {
@@ -98,6 +113,26 @@ export class WsServer {
         const update = msg.state as Partial<TranslatorState>;
         if (update) {
           this.onTranslatorState?.(update);
+        }
+        break;
+      }
+      case "updateScene": {
+        this.onUpdateScene?.(msg.patch as Partial<SceneConfig>);
+        ws.send(JSON.stringify({ type: "sceneUpdated" }));
+        break;
+      }
+      case "saveScene": {
+        this.onSaveScene?.().then(() => {
+          ws.send(JSON.stringify({ type: "sceneSaved" }));
+        }).catch((err) => {
+          ws.send(JSON.stringify({ type: "error", message: (err as Error).message }));
+        });
+        break;
+      }
+      case "getScene": {
+        const scene = this.onGetScene?.();
+        if (scene) {
+          ws.send(JSON.stringify({ type: "scene", scene }));
         }
         break;
       }

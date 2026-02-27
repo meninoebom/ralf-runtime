@@ -343,6 +343,10 @@ export class Runtime {
     this.initDancers(scene);
   }
 
+  getScene(): SceneConfig {
+    return this.scene;
+  }
+
   /** Hot-reload: updates scene config WITHOUT clearing dancers, senses, smoothers, or edge state */
   updateScene(patch: Partial<SceneConfig>) {
     if (patch.readings !== undefined) this.scene.readings = patch.readings;

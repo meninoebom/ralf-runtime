@@ -1,7 +1,8 @@
+import { join } from "node:path";
 import { Runtime } from "./engine/runtime.js";
 import { OscServer } from "./transport/osc-server.js";
 import { WsServer } from "./transport/ws-server.js";
-import { loadScene, listScenes } from "./scenes/loader.js";
+import { loadScene, listScenes, saveScene } from "./scenes/loader.js";
 import { validateScene } from "./scenes/validator.js";
 import { log, setLogFile } from "./logging.js";
 import type { SceneConfig, QualityName } from "./types.js";
@@ -9,6 +10,7 @@ import type { SceneConfig, QualityName } from "./types.js";
 const OSC_IN_PORT = parseInt(process.env.RALF_OSC_IN_PORT ?? "6449", 10);
 const OSC_OUT_PORT = parseInt(process.env.RALF_OSC_OUT_PORT ?? "12000", 10);
 const WS_PORT = parseInt(process.env.RALF_WS_PORT ?? "8765", 10);
+const CONSOLE_PORT = parseInt(process.env.RALF_CONSOLE_PORT ?? "3300", 10);
 
 async function main() {
   const startTime = new Date().toISOString();
@@ -98,6 +100,15 @@ async function main() {
   ws.setTranslatorStateHandler((update) => {
     runtime.updateTranslatorState(update);
   });
+  ws.setUpdateSceneHandler((patch) => {
+    runtime.updateScene(patch);
+    log("scene", `Scene updated via WebSocket`);
+  });
+  ws.setSaveSceneHandler(async () => {
+    await saveScene(runtime.getScene());
+    log("scene", `Scene saved to disk: ${runtime.getScene().name}`);
+  });
+  ws.setGetSceneHandler(() => runtime.getScene());
 
   // Wire outputs
   runtime.setActHandler((msg) => {
@@ -120,6 +131,32 @@ async function main() {
   ws.start();
   runtime.start(30);
 
+  // HTTP server for console static files
+  const CONTENT_TYPES: Record<string, string> = {
+    ".html": "text/html",
+    ".js": "application/javascript",
+    ".css": "text/css",
+  };
+
+  const consoleDir = join(process.cwd(), "console");
+  Bun.serve({
+    port: CONSOLE_PORT,
+    async fetch(req) {
+      const url = new URL(req.url);
+      const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
+      const ext = pathname.slice(pathname.lastIndexOf("."));
+      const contentType = CONTENT_TYPES[ext];
+      if (!contentType) {
+        return new Response("Not Found", { status: 404 });
+      }
+      const file = Bun.file(join(consoleDir, pathname));
+      if (!(await file.exists())) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response(file, { headers: { "Content-Type": contentType } });
+    },
+  });
+
   console.log(`
 ┌─────────────────────────────────────┐
 │         RALF RUNTIME SERVER         │
@@ -127,6 +164,7 @@ async function main() {
 │  OSC in:     localhost:${OSC_IN_PORT}        │
 │  OSC out:    localhost:${OSC_OUT_PORT}       │
 │  WebSocket:  localhost:${WS_PORT}        │
+│  Console:    localhost:${String(CONSOLE_PORT).padEnd(13)}│
 │  Scene:      ${scene.name.padEnd(22)}│
 │  Started:    ${startTime.slice(11, 19).padEnd(22)}│
 │                                     │
