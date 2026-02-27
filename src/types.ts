@@ -88,7 +88,10 @@ export type QualityName =
   | "heading"
   | "stillness"
   | "periodicity"
-  | "groundedness";
+  | "groundedness"
+  | "synchrony"
+  | "contrast"
+  | "aggregate_energy";
 
 export interface DancerState {
   id: string;

@@ -19,11 +19,13 @@ import { Recognize } from "../primitives/recognize.js";
 import { combine } from "../primitives/combine.js";
 import { roll } from "../primitives/roll.js";
 import { act } from "../primitives/act.js";
+import { computeRelational } from "./relational.js";
 
 const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
+  "synchrony", "contrast", "aggregate_energy",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -57,6 +59,8 @@ export class Runtime {
   private hysteresisState: Map<string, HysteresisState> = new Map(); // dancerId -> state
   private dancerMeta = new Map<string, DancerMeta>();
   private lastEmitted = new Map<string, number>(); // act address -> last value (for deadband)
+  private velocityHistories = new Map<string, number[]>();
+  private readonly RELATIONAL_WINDOW = 20;
   private interval: ReturnType<typeof setInterval> | null = null;
   private _tick = 0;
   private _translatorState: TranslatorState = { tempo: 120, playing: false, scene: 0 };
@@ -138,6 +142,46 @@ export class Runtime {
           dancer.qualities[quality] = Math.max(0, dancer.qualities[quality] - 0.02);
         }
       }
+    }
+
+    // Update velocity histories for relational computation
+    for (const [dancerId, dancer] of this.dancers) {
+      if (dancerId.startsWith("_")) continue;
+      let history = this.velocityHistories.get(dancerId);
+      if (!history) {
+        history = [];
+        this.velocityHistories.set(dancerId, history);
+      }
+      history.push(dancer.qualities.velocity);
+      if (history.length > this.RELATIONAL_WINDOW) {
+        history.splice(0, history.length - this.RELATIONAL_WINDOW);
+      }
+    }
+
+    // Compute relational qualities and inject into _crowd virtual dancer
+    const activeDancers = [...this.dancers.keys()].filter(id => !id.startsWith("_"));
+    if (activeDancers.length > 1) {
+      const relational = computeRelational(
+        this.dancers,
+        this.velocityHistories,
+        this.RELATIONAL_WINDOW,
+      );
+
+      let crowd = this.dancers.get("_crowd");
+      if (!crowd) {
+        crowd = {
+          id: "_crowd",
+          qualities: Object.fromEntries(ALL_QUALITIES.map(q => [q, 0])) as Record<QualityName, number>,
+          lastGesture: null,
+          lastGestureTime: 0,
+        };
+        this.dancers.set("_crowd", crowd);
+      }
+      crowd.qualities.synchrony = relational.synchrony;
+      crowd.qualities.contrast = relational.contrast;
+      crowd.qualities.aggregate_energy = relational.aggregate_energy;
+    } else {
+      this.dancers.delete("_crowd");
     }
 
     const allReadings: ReadingValue[] = [];
@@ -339,6 +383,7 @@ export class Runtime {
     this.hysteresisState.clear();
     this.dancerMeta.clear();
     this.lastEmitted.clear();
+    this.velocityHistories.clear();
     this._tick = 0;
     this.initDancers(scene);
   }

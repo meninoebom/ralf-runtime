@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "name": "crowd-demo",
+  "settings": {
+    "adaptive_range_decay": 0.002,
+    "hysteresis_band": 0.05,
+    "staleness_frames": 90
+  },
+  "dancers": [
+    { "id": "imu_1", "adapter": "imu" },
+    { "id": "imu_2", "adapter": "imu" },
+    { "id": "imu_3", "adapter": "imu" },
+    { "id": "imu_4", "adapter": "imu" },
+    { "id": "imu_5", "adapter": "imu" },
+    { "id": "_crowd" }
+  ],
+  "readings": [
+    {
+      "id": "individual-energy",
+      "mix": { "velocity": 0.6, "jerkiness": 0.4 },
+      "gate": { "velocity": { "above": 0.3 } },
+      "intents": ["add_energy"]
+    },
+    {
+      "id": "crowd-sync",
+      "mix": { "synchrony": 1.0 },
+      "gate": { "synchrony": { "above": 0.4 } },
+      "intents": [
+        { "intent": "reward_sync", "mode": "continuous" }
+      ]
+    },
+    {
+      "id": "crowd-energy",
+      "mix": { "aggregate_energy": 1.0 },
+      "gate": { "aggregate_energy": { "above": 0.5 } },
+      "intents": ["group_energy"]
+    },
+    {
+      "id": "stillness-moment",
+      "mix": { "stillness": 1.0 },
+      "gate": { "stillness": { "above": 0.5 } },
+      "intents": ["settle_down"]
+    }
+  ],
+  "intents": {
+    "add_energy": {
+      "pool": [
+        { "action": "trigger/unmute_track", "args": { "track": "perc" }, "weight": 3 },
+        { "action": "set/filter_cutoff", "weight": 2 }
+      ]
+    },
+    "reward_sync": {
+      "pool": [
+        { "action": "set/filter_cutoff", "weight": 3 },
+        { "action": "set/reverb_wet", "weight": 2 }
+      ]
+    },
+    "group_energy": {
+      "pool": [
+        { "action": "trigger/fire_next_scene", "weight": 2 },
+        { "action": "trigger/unmute_track", "args": { "track": "bass" }, "weight": 3 }
+      ]
+    },
+    "settle_down": {
+      "pool": [
+        { "action": "trigger/mute_track", "args": { "track": "perc" }, "weight": 2 },
+        { "action": "set/volume", "weight": 1 }
+      ]
+    }
+  },
+  "translator": { "type": "tonejs", "port": 12000 }
+}
