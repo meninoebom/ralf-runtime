@@ -28,10 +28,12 @@ src/
 │   └── index.ts          # Barrel export
 ├── transport/
 │   ├── osc-server.ts     # UDP OSC input/output with hand-rolled parser
-│   └── ws-server.ts      # WebSocket for Performance Console
-└── scenes/
-    ├── loader.ts         # Load/save/list JSON scene configs from scenes/ directory
-    └── validator.ts      # Validate scene config on load (quality names, intent refs, gates)
+│   └── ws-server.ts      # WebSocket for Performance Console (state broadcast + commands)
+├── scenes/
+│   ├── loader.ts         # Load/save/list JSON scene configs from scenes/ directory
+│   └── validator.ts      # Validate scene config on load (quality names, intent refs, gates)
+console/
+└── index.html            # Performance Console — live dashboard + scene editor (served on :3300)
 ```
 
 ## Key Design Decisions
@@ -98,6 +100,22 @@ npm run build  # Compile TypeScript
 npm test       # Run tests (vitest)
 ```
 
+## Performance Console
+
+The console is a single HTML file (`console/index.html`) served by the runtime on `:3300` (`RALF_CONSOLE_PORT`).
+
+**Dashboard panels**: Dancers (quality bars), Readings (value + active badge), Acts (scrolling log + rate), Translator (tempo/playing/scene), System (connection, frames).
+
+**Scene Editor** (collapsible): Live sliders for reading mix weights, gate thresholds, intent pool weights, deterministic toggle. Changes send `updateScene` patch via WS — applied immediately without resetting calibration. Save button persists to disk.
+
+**WebSocket commands** (console → runtime):
+- `getState` — request current state snapshot
+- `getScene` — request full scene config (populates editor)
+- `updateScene { patch }` — hot-reload scene properties
+- `saveScene` — write current scene to disk
+
+**Key gotcha**: `scene.intents[name]` can be `IntentOption[]` or `IntentPoolConfig {pool, deterministic?}`. The console normalizes to `IntentPoolConfig` on load.
+
 ## OSC Protocol
 
 Input (what the runtime listens for):
@@ -119,28 +137,18 @@ Health:
 Valid quality names: `velocity`, `acceleration`, `jerkiness`, `energy`, `spatial_extent`, `contraction`, `symmetry`, `coherence`, `verticality`, `heading`, `stillness`, `periodicity`, `groundedness`.
 Unknown quality names are silently ignored.
 
-## Phase 2 Build Targets (current)
+## Build Status
 
-These are the immediate build priorities. See architecture doc for full roadmap.
+**Phase 2 — COMPLETE.** All 16 build targets done (71 tests passing).
 
-| Task | What | Notes |
-|------|------|-------|
-| **Smooth primitive** | One-euro filter after AdaptiveRange | Blocks real dancer testing. ~50 lines. |
-| **Gate hysteresis** | Schmitt trigger on gate thresholds | ~10 lines in evaluateGate. Prevents edge flutter. |
-| **Deadband on Act emission** | Skip if value delta < 0.01 | Prevents flooding translator with 30 near-identical messages/sec |
-| **Staleness decay** | Decay qualities to 0 after 90 frames of no updates | Prevents frozen state from disconnected dancers |
-| **AdaptiveRange improvements** | Warm-up (return 0.5 for first 90 frames), min range floor | Prevents "everything saturated" startup |
-| **Wire Accumulate into runtime** | Connect to readings for temporal patterns | Duration tracking, windowed rate |
-| **Wire Gate into runtime** | Hysteresis-aware gate evaluation | Already has standalone tests |
-| **Trajectory** | Windowed slope of quality/reading values | Enables building/sustaining/releasing |
-| **Scene validation** | Check quality names, intent refs on load | 20 lines. Saves hours of debugging. |
-| **Logging** | Timestamp all acts, connections, scene changes | Write to file. 30 minutes of work. |
-| **Continuous intent mode** | Fire every tick while active, not just on edge | For sustained parameter mapping |
-| **on_exit intents** | Fire on falling edge (active -> inactive) | Captures moment of release |
-| **trigger/ vs set/ act prefix** | Distinguish discrete events from continuous params | Translators need to know whether to slew or jump |
-| **Scene hot-reload** | Update weights/thresholds without resetting calibration | `updateScene(patch)` alongside `loadScene()` |
-| **Heartbeat** | `/ralf/ping` -> `/ralf/pong` | 10 lines. Critical for debugging. |
-| **State input from translators** | Listen for `/ralf/state/*` messages | Store tempo, playing, scene index |
+**Phase 3 (Integration) — COMPLETE.** End-to-end pipeline working: MediaPipe → adapter → runtime → translator → sound.
+
+**Phase 4 (Console) — COMPLETE.** Performance Console + Scene Editor at :3300. Live dashboard, real-time scene editing, save to disk.
+
+**Next priorities:**
+- Crowd mode — phone web app (WebRTC/WebSocket, aggregate qualities)
+- Hardening — smart launcher, heartbeat monitoring, reconnection logic
+- Scene library — save/load/share scene configs
 
 ## After Completing Work
 
