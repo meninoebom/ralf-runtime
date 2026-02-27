@@ -11,7 +11,8 @@ src/
 ├── types.ts              # All shared types (SceneConfig, ReadingValue, ActMessage, etc.)
 ├── index.ts              # Entry point — wires OSC, WebSocket, and Runtime together
 ├── engine/
-│   └── runtime.ts        # The tick loop: evaluates readings, resolves intents with edge detection
+│   ├── runtime.ts        # The tick loop: evaluates readings, resolves intents with edge detection
+│   └── relational.ts     # Cross-dancer qualities: synchrony, contrast, aggregate_energy
 ├── primitives/
 │   ├── adaptive-range.ts # Self-calibrating 0-1 normalizer (ported from States of Being)
 │   ├── sense.ts          # Wraps AdaptiveRange per quality per dancer
@@ -74,6 +75,14 @@ If no quality update arrives for a dancer for 90 frames (3 seconds), decay value
 
 ### Trajectory
 Direction of change of a quality/reading over time. Windowed slope (5-10 frames). Enables "building" vs "sustaining" vs "releasing" as distinct readable states.
+
+### Relational qualities (crowd mode)
+When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtual dancer with three qualities:
+- **synchrony**: mean pairwise Pearson correlation of velocity histories (20-frame window). Only rewards positive correlation (negative clamped to 0).
+- **contrast**: mean pairwise L2 distance of quality vectors, normalized by sqrt(numQualities).
+- **aggregate_energy**: mean velocity across all active dancers.
+
+Scene readings can target `_crowd` like any dancer. The `_crowd` dancer is deleted when ≤1 real dancer remains. Relational computation happens after staleness decay but before readings evaluation.
 
 ### Learning mode
 Intent pools support `"deterministic": true` — highest weight always wins. For rehearsal. Switch to stochastic for performance.
@@ -145,8 +154,10 @@ Unknown quality names are silently ignored.
 
 **Phase 4 (Console) — COMPLETE.** Performance Console + Scene Editor at :3300. Live dashboard, real-time scene editing, save to disk.
 
+**Phase 5 (Crowd Mode) — CODE COMPLETE.** Relational qualities (synchrony, contrast, aggregate_energy) computed across dancer pairs. Virtual `_crowd` dancer auto-created when >1 dancer active. IMU adapter in `adapters/imu/` accepts phones/wristbands over WebSocket on :3400. Not yet integration-tested end-to-end.
+
 **Next priorities:**
-- Crowd mode — phone web app (WebRTC/WebSocket, aggregate qualities)
+- Crowd integration testing — add IMU adapter to dev.sh, test with 2+ phones via ngrok
 - Hardening — smart launcher, heartbeat monitoring, reconnection logic
 - Scene library — save/load/share scene configs
 
