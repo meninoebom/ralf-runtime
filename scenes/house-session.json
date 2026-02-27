@@ -1,7 +1,7 @@
 {
   "name": "house-session",
   "dancers": [
-    { "id": "maya", "input": { "type": "mediapipe", "port": 6448 } }
+    { "id": "dancer1", "input": { "type": "mediapipe", "port": 6448 } }
   ],
   "readings": [
     {
@@ -17,6 +17,12 @@
         { "intent": "strip_energy", "below": 0.3 },
         { "intent": "add_energy", "above": 0.7 }
       ]
+    },
+    {
+      "id": "filter-sweep",
+      "mix": { "velocity": 1.0 },
+      "continuous": true,
+      "intents": ["shape_filter"]
     }
   ],
   "intents": {
@@ -27,6 +33,9 @@
     "strip_energy": [
       { "action": "filter_cutoff", "weight": 3 },
       { "action": "mute_track", "args": { "track": "perc" }, "weight": 1 }
+    ],
+    "shape_filter": [
+      { "action": "set/filter_cutoff", "weight": 1 }
     ]
   },
   "sonic_world": { "type": "ableton", "port": 12000 }

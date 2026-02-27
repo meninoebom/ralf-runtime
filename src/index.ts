@@ -6,9 +6,9 @@ import { validateScene } from "./scenes/validator.js";
 import { log, setLogFile } from "./logging.js";
 import type { SceneConfig, QualityName } from "./types.js";
 
-const OSC_IN_PORT = 6449;
-const OSC_OUT_PORT = 12000;
-const WS_PORT = 8765;
+const OSC_IN_PORT = parseInt(process.env.RALF_OSC_IN_PORT ?? "6449", 10);
+const OSC_OUT_PORT = parseInt(process.env.RALF_OSC_OUT_PORT ?? "12000", 10);
+const WS_PORT = parseInt(process.env.RALF_WS_PORT ?? "8765", 10);
 
 async function main() {
   const startTime = new Date().toISOString();
