@@ -20,7 +20,8 @@ export async function listScenes(): Promise<string[]> {
     const files = await readdir(SCENES_DIR);
     return files
       .filter((f) => f.endsWith(".json"))
-      .map((f) => f.replace(".json", ""));
+      .map((f) => f.replace(".json", ""))
+      .sort();
   } catch {
     return [];
   }
