@@ -55,7 +55,7 @@
     color: #555; margin-bottom: 10px;
   }
 
-  /* Quality / reading bars */
+  /* Quality / moment bars */
   .bar-row {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 5px; font-size: 11px;
@@ -72,14 +72,15 @@
     transition: width 0.15s;
   }
   .bar-fill.dim { background: #333; }
-  .bar-value { font-size: 10px; color: #555; width: 36px; text-align: right; }
+  .bar-value { font-size: 10px; color: #555; width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
   .active-badge {
-    width: 6px; height: 6px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     display: inline-block; margin-right: 6px;
+    transition: background 0.2s, box-shadow 0.2s;
   }
-  .active-badge.on { background: #4a4; }
-  .active-badge.off { background: #333; }
+  .active-badge.on { background: #4a4; box-shadow: 0 0 6px rgba(68,170,68,0.5); }
+  .active-badge.off { background: #2a2a2a; }
 
   .dancer-header { font-size: 12px; color: #5c5; margin: 8px 0 4px; }
   .dancer-header:first-child { margin-top: 0; }
@@ -109,41 +110,77 @@
     width: 100%; max-width: 1100px; margin-bottom: 16px;
   }
   .editor-toggle {
-    font-size: 12px; color: #888; cursor: pointer;
-    padding: 8px 0; user-select: none;
+    font-size: 12px; color: #666; cursor: pointer;
+    padding: 10px 0; user-select: none;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    transition: color 0.15s;
   }
-  .editor-toggle:hover { color: #ccc; }
-  .editor-body { display: none; }
+  .editor-toggle:hover { color: #aaa; }
+  .editor-body { display: none; padding-top: 4px; }
   .editor-body.open { display: block; }
 
-  .editor-group {
-    background: #111; border: 1px solid #222; border-radius: 6px;
-    padding: 12px; margin-bottom: 12px;
+  /* Section dividers between moments and responses */
+  .editor-section-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #444; margin: 20px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #1a1a1a;
   }
+  .editor-section-label:first-child { margin-top: 4px; }
+
+  .editor-group {
+    background: #111; border: 1px solid #1e1e1e; border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 10px;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .editor-group:hover { border-color: #2a2a2a; }
+  .editor-group.active-glow {
+    border-color: #2a4a2a; box-shadow: 0 0 8px rgba(68,170,68,0.15);
+  }
+  .editor-group.scroll-highlight {
+    border-color: #4a4; box-shadow: 0 0 12px rgba(68,170,68,0.3);
+  }
+
+  /* Clickable live bars */
+  .bar-row.clickable { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin: 0 -4px 5px; transition: background 0.15s; }
+  .bar-row.clickable:hover { background: rgba(255,255,255,0.03); }
   .editor-group-title {
     font-size: 11px; color: #5c5; margin-bottom: 8px; font-weight: 600;
+    letter-spacing: 0.3px;
   }
   .slider-row {
     display: flex; align-items: center; gap: 8px;
-    margin-bottom: 4px; font-size: 11px;
+    margin-bottom: 6px; font-size: 11px;
   }
-  .slider-row label { color: #888; min-width: 120px; }
+  .slider-row label { color: #777; min-width: 120px; }
   .slider-row input[type="range"] {
     flex: 1; max-width: 200px; accent-color: #4a4;
     height: 4px; -webkit-appearance: none; appearance: none;
-    background: #222; border-radius: 2px; outline: none;
+    background: #1a1a1a; border-radius: 2px; outline: none;
+    cursor: pointer;
   }
   .slider-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 12px; height: 12px;
+    -webkit-appearance: none; width: 14px; height: 14px;
     border-radius: 50%; background: #4a4; cursor: pointer;
+    border: 2px solid #111;
+    transition: background 0.15s;
   }
-  .slider-row .slider-val { color: #555; width: 36px; text-align: right; }
-  .slider-row input[type="checkbox"] { accent-color: #4a4; }
+  .slider-row input[type="range"]::-webkit-slider-thumb:hover {
+    background: #5c5;
+  }
+  .slider-row input[type="range"]:active::-webkit-slider-thumb {
+    background: #6d6;
+  }
+  .slider-row .slider-val { color: #666; width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+  .slider-row input[type="checkbox"] {
+    accent-color: #4a4; width: 14px; height: 14px; cursor: pointer;
+  }
 
   .save-btn {
-    background: #1a3a1a; border-color: #2a5a2a; color: #5c5; font-weight: 600;
+    background: #1a3a1a; border-color: #2a5a2a; color: #5c5;
+    font-weight: 600; padding: 10px 24px; font-size: 12px;
+    letter-spacing: 0.3px;
   }
-  .save-btn:hover { background: #254025; }
+  .save-btn:hover { background: #254025; border-color: #3a6a3a; }
   .save-btn.flash { background: #2a5a2a; color: #fff; }
 
   .intent-actions { margin-left: 16px; }
@@ -152,109 +189,212 @@
 
   .no-data { font-size: 11px; color: #444; font-style: italic; }
 
-  /* Reading editor enhancements */
+  /* Moment editor enhancements */
   .reading-header {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   }
   .reading-header .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
   .reading-label {
-    font-family: inherit; font-size: 11px; background: #0a0a0a;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 3px 6px; flex: 1; max-width: 180px;
+    font-family: inherit; font-size: 11px; background: #0d0d0d;
+    color: #999; border: 1px solid #222; border-radius: 4px;
+    padding: 4px 8px; flex: 1; max-width: 180px;
+    transition: border-color 0.15s, color 0.15s;
   }
-  .reading-label::placeholder { color: #333; }
+  .reading-label::placeholder { color: #333; font-style: italic; }
   .reading-label:focus { outline: none; border-color: #4a4; color: #ccc; }
   .remove-btn {
-    font-family: inherit; font-size: 11px; background: none;
-    border: 1px solid #333; border-radius: 3px; color: #666;
-    padding: 2px 6px; cursor: pointer; line-height: 1;
+    font-family: inherit; font-size: 12px; background: none;
+    border: 1px solid transparent; border-radius: 4px; color: #444;
+    padding: 2px 7px; cursor: pointer; line-height: 1;
+    transition: all 0.15s;
   }
-  .remove-btn:hover { border-color: #a44; color: #a44; }
+  .remove-btn:hover { border-color: #a44; color: #a44; background: rgba(170,68,68,0.08); }
   .add-row {
-    display: flex; gap: 8px; align-items: center; margin-top: 6px;
+    display: flex; gap: 8px; align-items: center; margin-top: 8px;
   }
   .add-row select {
-    font-family: inherit; font-size: 11px; background: #0a0a0a;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 3px 6px; cursor: pointer;
+    font-family: inherit; font-size: 11px; background: #0d0d0d;
+    color: #666; border: 1px solid #222; border-radius: 4px;
+    padding: 4px 8px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
   }
-  .add-row select:focus { outline: none; border-color: #4a4; }
+  .add-row select:hover { border-color: #333; color: #888; }
+  .add-row select:focus { outline: none; border-color: #4a4; color: #888; }
   .add-btn {
-    font-family: inherit; font-size: 11px; background: #1a2a1a;
-    border: 1px solid #2a3a2a; border-radius: 3px; color: #5c5;
-    padding: 4px 10px; cursor: pointer;
+    font-family: inherit; font-size: 11px; background: #151f15;
+    border: 1px solid #2a3a2a; border-radius: 4px; color: #5c5;
+    padding: 6px 14px; cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.2px;
   }
-  .add-btn:hover { background: #253025; border-color: #3a4a3a; }
+  .add-btn:hover { background: #1e2e1e; border-color: #3a5a3a; color: #6d6; }
   .quality-row {
     display: flex; align-items: center; gap: 8px;
-    margin-bottom: 4px; font-size: 11px;
+    margin-bottom: 6px; font-size: 11px;
   }
-  .quality-row label { color: #888; min-width: 120px; }
+  .quality-row label { color: #777; min-width: 120px; }
   .quality-row input[type="range"] {
     flex: 1; max-width: 200px; accent-color: #4a4;
     height: 4px; -webkit-appearance: none; appearance: none;
-    background: #222; border-radius: 2px; outline: none;
+    background: #1a1a1a; border-radius: 2px; outline: none;
+    cursor: pointer;
   }
   .quality-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 12px; height: 12px;
+    -webkit-appearance: none; width: 14px; height: 14px;
     border-radius: 50%; background: #4a4; cursor: pointer;
+    border: 2px solid #111;
+    transition: background 0.15s;
   }
+  .quality-row input[type="range"]::-webkit-slider-thumb:hover {
+    background: #5c5;
+  }
+  .quality-row .slider-val { font-variant-numeric: tabular-nums; }
   .gate-row {
     display: flex; align-items: center; gap: 6px;
-    margin-bottom: 4px; font-size: 11px; margin-left: 16px;
+    margin-bottom: 6px; font-size: 11px; margin-left: 128px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
   }
-  .gate-row label { color: #666; min-width: 40px; }
+  .gate-row:hover { opacity: 1; }
+  .gate-row label { color: #8a6530; min-width: 40px; font-size: 10px; }
   .gate-row input[type="number"] {
-    font-family: inherit; font-size: 11px; background: #0a0a0a;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 2px 4px; width: 60px;
+    font-family: inherit; font-size: 11px; background: #0d0d0d;
+    color: #b87333; border: 1px solid #2a1f14; border-radius: 4px;
+    padding: 3px 6px; width: 60px;
+    transition: border-color 0.15s;
   }
-  .gate-row input[type="number"]:focus { outline: none; border-color: #4a4; color: #ccc; }
-  .empty-hint { font-size: 10px; color: #444; font-style: italic; margin: 8px 0; }
+  .gate-row input[type="number"]:focus { outline: none; border-color: #b87333; color: #d4956a; }
 
-  /* Intent wiring on readings */
+  .info-icon {
+    display: inline-block; font-size: 9px; color: #444;
+    border: 1px solid #333; border-radius: 50%; width: 14px; height: 14px;
+    text-align: center; line-height: 13px; cursor: help;
+    margin-left: 6px; vertical-align: middle;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .info-icon:hover { color: #888; border-color: #555; }
+  .empty-hint {
+    font-size: 10px; color: #3a3a3a; font-style: italic;
+    margin: 10px 0; padding: 8px 12px;
+    border: 1px dashed #1e1e1e; border-radius: 4px;
+  }
+
+  /* Template cards */
+  .template-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px; margin: 8px 0;
+  }
+  .template-card {
+    background: #111; border: 1px dashed #2a3a2a; border-radius: 6px;
+    padding: 10px 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .template-card:hover { border-color: #4a4; border-style: solid; background: #151f15; }
+  .template-card .template-name {
+    font-size: 11px; color: #5c5; font-weight: 600; margin-bottom: 4px;
+  }
+  .template-card .template-desc {
+    font-size: 10px; color: #555; line-height: 1.4;
+  }
+  .empty-state {
+    text-align: center; padding: 20px 16px;
+  }
+  .empty-state .empty-title {
+    font-size: 11px; color: #555; margin-bottom: 12px;
+  }
+
+  /* Response wiring on moments */
   .intent-wire-section {
-    margin-top: 8px; padding-top: 8px; border-top: 1px solid #1a1a1a;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #1a1a1a;
   }
-  .intent-wire-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .intent-wire-title {
+    font-size: 9px; color: #555; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px;
+  }
   .intent-wire {
-    display: flex; align-items: center; gap: 6px;
-    margin-bottom: 4px; font-size: 11px; padding: 3px 0;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px; font-size: 11px; padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
   }
-  .intent-wire .intent-name { color: #7a7; min-width: 80px; }
+  .intent-wire:hover { background: rgba(255,255,255,0.02); }
+  .intent-wire .intent-name {
+    color: #7a7; min-width: 80px; font-weight: 600;
+  }
   .intent-wire select {
-    font-family: inherit; font-size: 10px; background: #0a0a0a;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 2px 4px; cursor: pointer;
+    font-family: inherit; font-size: 10px; background: #0d0d0d;
+    color: #888; border: 1px solid #1e1e1e; border-radius: 4px;
+    padding: 3px 6px; cursor: pointer;
+    transition: border-color 0.15s;
   }
+  .intent-wire select:hover { border-color: #333; }
+  .intent-wire select:focus { outline: none; border-color: #4a4; }
   .intent-wire input[type="number"] {
-    font-family: inherit; font-size: 10px; background: #0a0a0a;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 2px 4px; width: 50px;
+    font-family: inherit; font-size: 10px; background: #0d0d0d;
+    color: #888; border: 1px solid #1e1e1e; border-radius: 4px;
+    padding: 3px 6px; width: 50px;
+    transition: border-color 0.15s;
   }
-  .intent-wire label { color: #666; font-size: 10px; }
+  .intent-wire input[type="number"]:focus { outline: none; border-color: #4a4; }
+  .intent-wire label { color: #555; font-size: 10px; }
 
-  /* Intent editor — action picker */
-  .action-card {
-    background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 4px;
-    padding: 8px; margin-bottom: 6px; margin-left: 12px;
+  /* Inline actions within moment cards */
+  .inline-actions {
+    margin-left: 16px; margin-top: 4px; margin-bottom: 4px;
   }
+  .inline-actions-collapsed .action-set-toggle {
+    font-size: 10px; color: #666; cursor: pointer; padding: 4px 8px;
+    margin-left: 16px; margin-top: 4px;
+    transition: color 0.15s;
+  }
+  .inline-actions-collapsed .action-set-toggle:hover { color: #999; }
+  .inline-actions-collapsed .action-set-body {
+    display: none; margin-left: 16px; margin-top: 4px;
+  }
+  .inline-actions-collapsed.expanded .action-set-body { display: block; }
+  .inline-actions-collapsed.expanded .action-set-toggle {
+    color: #999;
+  }
+
+  /* Shared response pools collapsible */
+  .shared-pools-toggle {
+    font-size: 10px; color: #555; text-transform: uppercase;
+    letter-spacing: 1px; cursor: pointer; padding: 8px 0;
+    transition: color 0.15s;
+  }
+  .shared-pools-toggle:hover { color: #888; }
+  .shared-pools-body.collapsed { display: none; }
+
+  /* Response editor — action picker */
+  .action-card {
+    background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 5px;
+    padding: 10px 12px; margin-bottom: 8px; margin-left: 12px;
+    transition: border-color 0.15s;
+  }
+  .action-card:hover { border-color: #252525; }
   .action-header {
     display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11px;
   }
-  .action-header .action-name { color: #7a7; font-weight: 600; }
-  .action-header .action-desc { color: #555; font-size: 10px; flex: 1; }
-  .action-header .action-pct { color: #888; font-size: 10px; min-width: 32px; text-align: right; }
-  .action-args { margin-left: 8px; margin-top: 4px; }
-  .action-args .arg-row {
-    display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 10px;
+  .action-header .action-name { color: #7a7; font-weight: 600; letter-spacing: 0.2px; }
+  .action-header .action-desc { color: #444; font-size: 10px; flex: 1; font-style: italic; }
+  .action-header .action-pct {
+    color: #888; font-size: 10px; min-width: 36px; text-align: right;
+    font-variant-numeric: tabular-nums;
+    background: #161616; padding: 2px 6px; border-radius: 3px;
   }
-  .action-args .arg-row label { color: #666; min-width: 60px; }
+  .action-args { margin-left: 8px; margin-top: 6px; }
+  .action-args .arg-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 10px;
+  }
+  .action-args .arg-row label { color: #555; min-width: 60px; }
   .action-args .arg-row select, .action-args .arg-row input {
     font-family: inherit; font-size: 10px; background: #111;
-    color: #888; border: 1px solid #222; border-radius: 3px;
-    padding: 2px 4px;
+    color: #888; border: 1px solid #1e1e1e; border-radius: 4px;
+    padding: 3px 6px;
+    transition: border-color 0.15s;
   }
+  .action-args .arg-row select:hover, .action-args .arg-row input:hover { border-color: #333; }
+  .action-args .arg-row select:focus, .action-args .arg-row input:focus { outline: none; border-color: #4a4; }
 </style>
 </head>
 <body>
@@ -295,7 +435,7 @@
       <div id="dancers"><span class="no-data">waiting for data…</span></div>
     </div>
     <div class="panel">
-      <div class="panel-title">Readings</div>
+      <div class="panel-title">Moments</div>
       <div id="readings"><span class="no-data">waiting for data…</span></div>
     </div>
   </div>
@@ -328,9 +468,11 @@
 <div class="editor-section">
   <div class="editor-toggle" id="editor-toggle" onclick="toggleEditor()">▶ Scene Editor</div>
   <div class="editor-body" id="editor-body">
+    <div class="editor-section-label">Moments <span class="info-icon" title="A moment combines body inputs into a single signal that triggers responses">?</span></div>
     <div id="reading-editor"></div>
     <div id="intent-editor"></div>
-    <div style="margin-top:12px;">
+    <div style="margin-top:16px; padding-top:12px; border-top:1px solid #1a1a1a;">
+      <button class="save-btn" id="revert-btn" onclick="revertScene()">Revert to Saved</button>
       <button class="save-btn" id="save-btn" onclick="saveScene()">Save Scene</button>
     </div>
   </div>
@@ -356,6 +498,7 @@ let renderDirty = true;
 let editorDirty = false;
 let debounceTimer = null;
 let manifest = null;
+let savedScene = null;
 
 // ─── WebSocket ───────────────────────────────────────────────────────────────
 function connect() {
@@ -388,6 +531,7 @@ function connect() {
           break;
         case "scene":
           scene = msg.scene;
+          savedScene = JSON.parse(JSON.stringify(msg.scene));
           rebuildEditor();
           break;
         case "manifest":
@@ -512,12 +656,12 @@ function renderState(s) {
   const readingsEl = document.getElementById("readings");
   const readings = s.readings || [];
   if (readings.length === 0) {
-    readingsEl.innerHTML = '<span class="no-data">no readings</span>';
+    readingsEl.innerHTML = '<span class="no-data">no moments</span>';
   } else {
     let html = "";
     for (const r of readings) {
       const pct = Math.round(Math.max(0, Math.min(1, r.value)) * 100);
-      html += `<div class="bar-row">
+      html += `<div class="bar-row clickable" onclick="scrollToMomentCard('${r.id}')" title="Click to jump to editor">
         <span class="bar-label"><span class="active-badge ${r.active ? 'on' : 'off'}"></span>${r.id}</span>
         <div class="bar-bg tall"><div class="bar-fill${r.active ? '' : ' dim'}" style="width:${pct}%"></div></div>
         <span class="bar-value">${r.value.toFixed(2)}</span>
@@ -543,7 +687,7 @@ function updateEditorLive(s) {
     el.textContent = v !== undefined ? v.toFixed(2) : "—";
   });
 
-  // Update reading active badges
+  // Update reading active badges + card glow
   const readings = s.readings || [];
   const readingMap = {};
   for (const r of readings) readingMap[r.id] = r.active;
@@ -552,6 +696,35 @@ function updateEditorLive(s) {
     const active = readingMap[id];
     el.className = "active-badge " + (active ? "on" : "off");
   });
+  // Glow active moment cards
+  document.querySelectorAll("[data-reading-index]").forEach(card => {
+    const ri = parseInt(card.dataset.readingIndex);
+    const r = scene && scene.readings && scene.readings[ri];
+    if (r && readingMap[r.id]) {
+      card.classList.add("active-glow");
+    } else {
+      card.classList.remove("active-glow");
+    }
+  });
+}
+
+function scrollToMomentCard(readingId) {
+  // Open editor if closed
+  const body = document.getElementById("editor-body");
+  if (!body.classList.contains("open")) toggleEditor();
+
+  // Find the card by matching reading id
+  const cards = document.querySelectorAll("[data-reading-index]");
+  for (const card of cards) {
+    const ri = parseInt(card.dataset.readingIndex);
+    const r = scene && scene.readings && scene.readings[ri];
+    if (r && r.id === readingId) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("scroll-highlight");
+      setTimeout(() => card.classList.remove("scroll-highlight"), 1500);
+      return;
+    }
+  }
 }
 
 function renderActLog() {
@@ -590,6 +763,72 @@ const VALID_QUALITIES = [
 
 let readingCounter = 0;
 
+const MOMENT_TEMPLATES = [
+  {
+    name: "Energy Burst",
+    desc: "Trigger percussion when movement spikes",
+    mix: { velocity: 1.0 },
+    gate: { velocity: { above: 0.3 } },
+    response: { name: "energy-burst", mode: "edge" },
+    actions: [{ action: "trigger/unmute_track", weight: 1, args: { track: "perc" } }]
+  },
+  {
+    name: "Drop Out",
+    desc: "Mute & filter down when dancers go still",
+    mix: { stillness: 1.0 },
+    gate: { stillness: { above: 0.3 } },
+    response: { name: "drop-out", mode: "continuous" },
+    actions: [
+      { action: "set/filter_cutoff", weight: 1, args: {} },
+      { action: "trigger/mute_track", weight: 1, args: { track: "perc" } }
+    ]
+  },
+  {
+    name: "Sync Reward",
+    desc: "Add reverb when dancers synchronize",
+    mix: { synchrony: 1.0 },
+    gate: { synchrony: { above: 0.4 } },
+    response: { name: "sync-reward", mode: "continuous" },
+    actions: [{ action: "set/reverb_wet", weight: 1, args: {} }]
+  },
+  {
+    name: "Calm Down",
+    desc: "Lower volume as stillness increases",
+    mix: { stillness: 1.0 },
+    gate: { stillness: { above: 0.5 } },
+    response: { name: "calm-down", mode: "continuous" },
+    actions: [{ action: "set/volume", weight: 1, args: {} }]
+  }
+];
+
+function addMomentFromTemplate(template) {
+  readingCounter++;
+  if (!scene.readings) scene.readings = [];
+  if (!scene.intents) scene.intents = {};
+
+  const responseName = template.response.name;
+  const intentWire = { intent: responseName };
+  if (template.response.mode === "continuous") intentWire.mode = "continuous";
+
+  // Create the moment
+  scene.readings.push({
+    id: `reading-${readingCounter}`,
+    label: template.name,
+    mix: { ...template.mix },
+    gate: JSON.parse(JSON.stringify(template.gate || {})),
+    intents: [Object.keys(intentWire).length === 1 ? responseName : intentWire]
+  });
+
+  // Create the response with actions
+  scene.intents[responseName] = {
+    pool: JSON.parse(JSON.stringify(template.actions)),
+    deterministic: false
+  };
+
+  debounceSendScene("readings");
+  rebuildEditor();
+}
+
 function rebuildReadingEditor() {
   const el = document.getElementById("reading-editor");
   const readings = scene.readings || [];
@@ -601,6 +840,22 @@ function rebuildReadingEditor() {
   }
 
   let html = "";
+
+  // Show templates when no readings exist
+  if (readings.length === 0) {
+    html += `<div class="empty-state">`;
+    html += `<div class="empty-title">No moments yet — start from a template or create a blank one</div>`;
+    html += `<div class="template-grid">`;
+    for (let ti = 0; ti < MOMENT_TEMPLATES.length; ti++) {
+      const t = MOMENT_TEMPLATES[ti];
+      html += `<div class="template-card" data-action="use-template" data-ti="${ti}">`;
+      html += `<div class="template-name">${t.name}</div>`;
+      html += `<div class="template-desc">${t.desc}</div>`;
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+
   for (let ri = 0; ri < readings.length; ri++) {
     const r = readings[ri];
     html += `<div class="editor-group" data-reading-index="${ri}">`;
@@ -608,16 +863,16 @@ function rebuildReadingEditor() {
     // Header: id + label + remove
     html += `<div class="reading-header">`;
     html += `<span class="active-badge off" data-live-reading="${r.id || ri}"></span>`;
-    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
+    html += `<div class="editor-group-title">Moment: ${r.id || ri}</div>`;
     html += `<input type="text" class="reading-label" placeholder="moment name…" value="${r.label || ""}" data-ri="${ri}" data-type="reading-label">`;
-    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove reading">×</button>`;
+    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove moment">×</button>`;
     html += `</div>`;
 
     // Mix weights with remove per quality
     const mix = r.mix || {};
     const mixKeys = Object.keys(mix);
     if (mixKeys.length === 0) {
-      html += `<div class="empty-hint">Add a quality to this reading</div>`;
+      html += `<div class="empty-hint">Pick a body input below to start sensing movement — try 'velocity' (tracks how fast someone is moving)</div>`;
     }
     for (const q of mixKeys) {
       const w = mix[q];
@@ -634,12 +889,14 @@ function rebuildReadingEditor() {
       // Gate config for this quality
       const gc = r.gate && r.gate[q];
       html += `<div class="gate-row">
-        <label>above</label>
+        <label title="The moment activates when this quality rises above this value">activate above</label>
         <input type="number" min="0" max="1" step="0.01" value="${gc && gc.above !== undefined ? gc.above : ""}"
-          placeholder="—" data-type="gate-above" data-ri="${ri}" data-gq="${q}">
-        <label>below</label>
+          placeholder="—" data-type="gate-above" data-ri="${ri}" data-gq="${q}"
+          title="The moment activates when ${q} rises above this value">
+        <label title="The moment activates when this quality drops below this value">activate below</label>
         <input type="number" min="0" max="1" step="0.01" value="${gc && gc.below !== undefined ? gc.below : ""}"
-          placeholder="—" data-type="gate-below" data-ri="${ri}" data-gq="${q}">
+          placeholder="—" data-type="gate-below" data-ri="${ri}" data-gq="${q}"
+          title="The moment activates when ${q} drops below this value">
       </div>`;
     }
 
@@ -657,10 +914,10 @@ function rebuildReadingEditor() {
 
     // Intent wiring section
     html += `<div class="intent-wire-section">`;
-    html += `<div class="intent-wire-title">Intents</div>`;
+    html += `<div class="intent-wire-title">Responses <span class="info-icon" title="Connect responses to decide what happens when this moment activates">?</span></div>`;
     const intents = r.intents || [];
     if (intents.length === 0) {
-      html += `<div class="empty-hint">No intents wired</div>`;
+      html += `<div class="empty-hint">Connect a response to decide what happens when this moment activates</div>`;
     }
     for (let ii = 0; ii < intents.length; ii++) {
       const intent = intents[ii];
@@ -670,26 +927,42 @@ function rebuildReadingEditor() {
       const below = (typeof intent === "object" && intent.below !== undefined) ? intent.below : "";
       html += `<div class="intent-wire">
         <span class="intent-name">${name}</span>
-        <select data-ri="${ri}" data-ii="${ii}" data-action="intent-mode">
-          <option value="edge" ${mode === "edge" ? "selected" : ""}>edge</option>
-          <option value="continuous" ${mode === "continuous" ? "selected" : ""}>continuous</option>
+        <select data-ri="${ri}" data-ii="${ii}" data-action="intent-mode"
+          title="Once: fires once when condition becomes true. Streaming: sends value every frame while condition is true">
+          <option value="edge" ${mode === "edge" ? "selected" : ""}>once</option>
+          <option value="continuous" ${mode === "continuous" ? "selected" : ""}>streaming</option>
         </select>
-        <label>above</label>
+        <label title="This response only fires when the moment's value is above this threshold">fire above</label>
         <input type="number" min="0" max="1" step="0.01" value="${above}" placeholder="—"
+          title="This response only fires when the moment's value is above this threshold"
           data-ri="${ri}" data-ii="${ii}" data-action="intent-above">
-        <label>below</label>
+        <label title="This response only fires when the moment's value is below this threshold">fire below</label>
         <input type="number" min="0" max="1" step="0.01" value="${below}" placeholder="—"
+          title="This response only fires when the moment's value is below this threshold"
           data-ri="${ri}" data-ii="${ii}" data-action="intent-below">
-        <button class="remove-btn" data-ri="${ri}" data-ii="${ii}" data-action="remove-intent" title="Remove intent">×</button>
+        <button class="remove-btn" data-ri="${ri}" data-ii="${ii}" data-action="remove-intent" title="Remove response">×</button>
       </div>`;
+      // Inline actions for this response
+      const intentEntry = scene.intents && scene.intents[name];
+      if (intentEntry) {
+        const pool = intentEntry.pool || [];
+        if (pool.length <= 1) {
+          html += `<div class="inline-actions">${renderActionsHTML(name)}</div>`;
+        } else {
+          html += `<div class="inline-actions-collapsed">
+            <div class="action-set-toggle" onclick="this.parentElement.classList.toggle('expanded')">▶ Action Set (${pool.length} actions)</div>
+            <div class="action-set-body">${renderActionsHTML(name)}</div>
+          </div>`;
+        }
+      }
     }
     // Add intent dropdown
     const existingIntents = Object.keys(scene.intents || {});
     html += `<div class="add-row">
       <select data-ri="${ri}" data-action="add-intent">
-        <option value="">+ add intent</option>
+        <option value="">+ add response</option>
         ${existingIntents.map(n => `<option value="${n}">${n}</option>`).join("")}
-        <option value="__new__">New Intent…</option>
+        <option value="__new__">New Response…</option>
       </select>
     </div>`;
     html += `</div>`;
@@ -699,7 +972,7 @@ function rebuildReadingEditor() {
 
   // Add Reading button
   html += `<div style="margin-top:8px;">
-    <button class="add-btn" data-action="add-reading">+ Add Reading</button>
+    <button class="add-btn" data-action="add-reading">+ Add Moment</button>
   </div>`;
 
   el.innerHTML = html;
@@ -707,8 +980,8 @@ function rebuildReadingEditor() {
 }
 
 function attachReadingListeners(el) {
-  // Range sliders
-  el.querySelectorAll("input[type=range]").forEach(input => {
+  // Range sliders (only mix/gate types, not intent-weight which is handled by attachActionListeners)
+  el.querySelectorAll("input[type=range][data-type='mix']").forEach(input => {
     input.addEventListener("input", onReadingSlider);
   });
   // Label inputs
@@ -791,7 +1064,7 @@ function attachReadingListeners(el) {
       if (!name) return;
       const ri = parseInt(e.target.dataset.ri);
       if (name === "__new__") {
-        name = prompt("Intent name:");
+        name = prompt("Response name:");
         if (!name || !name.trim()) { e.target.value = ""; return; }
         name = name.trim();
         if (!scene.intents) scene.intents = {};
@@ -804,6 +1077,13 @@ function attachReadingListeners(el) {
       debounceSendScene("readings");
       rebuildReadingEditor();
       rebuildIntentEditor();
+    });
+  });
+  // Template cards
+  el.querySelectorAll("[data-action='use-template']").forEach(card => {
+    card.addEventListener("click", (e) => {
+      const ti = parseInt(e.currentTarget.dataset.ti);
+      addMomentFromTemplate(MOMENT_TEMPLATES[ti]);
     });
   });
   // Add reading button
@@ -822,6 +1102,8 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   }
+  // Attach action listeners for inline actions within moment cards
+  attachActionListeners(el);
 }
 
 function onGateInput(e) {
@@ -888,106 +1170,100 @@ function getManifestActionNames() {
   return manifest.actions.map(a => a.name);
 }
 
-function rebuildIntentEditor() {
-  const el = document.getElementById("intent-editor");
-  const intents = scene.intents || {};
-  const intentNames = Object.keys(intents);
-  if (intentNames.length === 0) {
-    el.innerHTML = '<div class="editor-group"><span class="no-data">no intents in scene</span></div>';
-    return;
-  }
+// Renders action cards + add-action dropdown for a given intent name
+function renderActionsHTML(name) {
+  const entry = scene.intents[name];
+  if (!entry) return "";
+  const actions = entry.pool || [];
+  const deterministic = entry.deterministic || false;
+  const totalWeight = actions.reduce((s, a) => s + (a.weight || 1), 0);
+  const showWeights = actions.length > 1;
 
   let html = "";
-  for (const name of intentNames) {
-    const entry = intents[name];
-    const isPoolConfig = !Array.isArray(entry);
-    const actions = isPoolConfig ? (entry.pool || []) : entry;
-    const deterministic = isPoolConfig ? (entry.deterministic || false) : false;
-
-    // Normalize to IntentPoolConfig for editing
-    if (Array.isArray(entry)) {
-      scene.intents[name] = { pool: entry, deterministic: false };
-    }
-
-    const totalWeight = actions.reduce((s, a) => s + (a.weight || 1), 0);
-    const showWeights = actions.length > 1;
-
-    html += `<div class="editor-group">`;
-    html += `<div class="editor-group-title">Intent: ${name}</div>`;
+  if (showWeights) {
     html += `<div class="slider-row">
-      <label>deterministic</label>
+      <label>Selection: ${deterministic ? "Fixed" : "Random"}</label>
       <input type="checkbox" data-type="intent-det" data-intent="${name}" ${deterministic ? "checked" : ""}>
     </div>`;
+  }
 
-    for (let ai = 0; ai < actions.length; ai++) {
-      const a = actions[ai];
-      const actionName = a.action || "?";
-      const weight = a.weight || 1;
-      const pct = totalWeight > 0 ? Math.round(weight / totalWeight * 100) : 0;
-      const mAction = getManifestAction(actionName);
-      const desc = mAction ? mAction.description : "";
+  for (let ai = 0; ai < actions.length; ai++) {
+    const a = actions[ai];
+    const actionName = a.action || "?";
+    const weight = a.weight || 1;
+    const pct = totalWeight > 0 ? Math.round(weight / totalWeight * 100) : 0;
+    const mAction = getManifestAction(actionName);
+    const desc = mAction ? mAction.description : "";
 
-      html += `<div class="action-card">`;
-      html += `<div class="action-header">
-        <span class="action-name">${actionName}</span>
-        <span class="action-desc">${desc}</span>
-        ${showWeights ? `<span class="action-pct">${pct}%</span>` : ""}
-        <button class="remove-btn" data-intent="${name}" data-ai="${ai}" data-action="remove-action" title="Remove action">×</button>
+    html += `<div class="action-card">`;
+    html += `<div class="action-header">
+      <span class="action-name">${actionName}</span>
+      <span class="action-desc">${desc}</span>
+      ${showWeights ? `<span class="action-pct">${pct}%</span>` : ""}
+      <button class="remove-btn" data-intent="${name}" data-ai="${ai}" data-action="remove-action" title="Remove action">×</button>
+    </div>`;
+
+    if (showWeights) {
+      html += `<div class="slider-row">
+        <label>weight</label>
+        <input type="range" min="1" max="10" step="1" value="${weight}"
+          data-type="intent-weight" data-intent="${name}" data-ai="${ai}">
+        <span class="slider-val">${weight}</span>
       </div>`;
+    }
 
-      // Weight slider (only when multiple actions)
-      if (showWeights) {
-        html += `<div class="slider-row">
-          <label>weight</label>
-          <input type="range" min="1" max="10" step="1" value="${weight}"
-            data-type="intent-weight" data-intent="${name}" data-ai="${ai}">
-          <span class="slider-val">${weight}</span>
-        </div>`;
-      }
-
-      // Args from manifest schema
-      if (mAction && mAction.args) {
-        html += `<div class="action-args">`;
-        for (const [argName, argSchema] of Object.entries(mAction.args)) {
-          const currentVal = (a.args && a.args[argName]) || "";
-          html += `<div class="arg-row">`;
-          html += `<label>${argName}</label>`;
-          if (argSchema.type === "enum") {
-            html += `<select data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">
-              <option value="">—</option>
-              ${argSchema.values.map(v => `<option value="${v}" ${currentVal === v ? "selected" : ""}>${v}</option>`).join("")}
-            </select>`;
-          } else if (argSchema.type === "number") {
-            html += `<input type="number" value="${currentVal}" placeholder="—"
-              data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
-          } else {
-            html += `<input type="text" value="${currentVal}" placeholder="—"
-              data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
-          }
-          html += `</div>`;
+    if (mAction && mAction.args) {
+      html += `<div class="action-args">`;
+      for (const [argName, argSchema] of Object.entries(mAction.args)) {
+        const currentVal = (a.args && a.args[argName]) || "";
+        html += `<div class="arg-row">`;
+        html += `<label>${argName}</label>`;
+        if (argSchema.type === "enum") {
+          html += `<select data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">
+            <option value="">—</option>
+            ${argSchema.values.map(v => `<option value="${v}" ${currentVal === v ? "selected" : ""}>${v}</option>`).join("")}
+          </select>`;
+        } else if (argSchema.type === "number") {
+          html += `<input type="number" value="${currentVal}" placeholder="—"
+            data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
+        } else {
+          html += `<input type="text" value="${currentVal}" placeholder="—"
+            data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
         }
         html += `</div>`;
       }
-
-      html += `</div>`; // action-card
-    }
-
-    // Add Action dropdown (from manifest)
-    const availableActions = getManifestActionNames();
-    if (availableActions.length > 0) {
-      html += `<div class="add-row">
-        <select data-intent="${name}" data-action="add-action">
-          <option value="">+ add action</option>
-          ${availableActions.map(a => `<option value="${a}">${a}</option>`).join("")}
-        </select>
-      </div>`;
+      html += `</div>`;
     }
 
     html += `</div>`;
   }
-  el.innerHTML = html;
 
-  // Attach listeners
+  const availableActions = getManifestActionNames();
+  if (availableActions.length > 0) {
+    html += `<div class="add-row">
+      <select data-intent="${name}" data-action="add-action">
+        <option value="">+ add action</option>
+        ${availableActions.map(a => `<option value="${a}">${a}</option>`).join("")}
+      </select>
+    </div>`;
+  }
+  return html;
+}
+
+// Count how many moments reference each intent
+function getIntentUsageCounts() {
+  const counts = {};
+  for (const r of (scene.readings || [])) {
+    for (const intent of (r.intents || [])) {
+      const name = typeof intent === "string" ? intent : intent.intent;
+      counts[name] = (counts[name] || 0) + 1;
+    }
+  }
+  return counts;
+}
+
+// Attach action-related listeners to a container element
+function attachActionListeners(el) {
   el.querySelectorAll("input[type=range][data-type='intent-weight']").forEach(input => {
     input.addEventListener("input", onIntentSlider);
   });
@@ -1000,7 +1276,7 @@ function rebuildIntentEditor() {
       const ai = parseInt(e.target.dataset.ai);
       scene.intents[name].pool.splice(ai, 1);
       debounceSendScene("intents");
-      rebuildIntentEditor();
+      rebuildEditor();
     });
   });
   el.querySelectorAll("select[data-action='add-action']").forEach(select => {
@@ -1010,7 +1286,7 @@ function rebuildIntentEditor() {
       const name = e.target.dataset.intent;
       scene.intents[name].pool.push({ action: actionName, weight: 1, args: {} });
       debounceSendScene("intents");
-      rebuildIntentEditor();
+      rebuildEditor();
     });
   });
   el.querySelectorAll("[data-action='action-arg']").forEach(input => {
@@ -1026,7 +1302,6 @@ function rebuildIntentEditor() {
       debounceSendScene("intents");
     });
   });
-  // Also handle select change for args
   el.querySelectorAll("select[data-action='action-arg']").forEach(select => {
     select.addEventListener("change", (e) => {
       const name = e.target.dataset.intent;
@@ -1040,6 +1315,51 @@ function rebuildIntentEditor() {
       debounceSendScene("intents");
     });
   });
+}
+
+function toggleSharedPools(el) {
+  const body = el.nextElementSibling;
+  body.classList.toggle("collapsed");
+  el.textContent = el.textContent.startsWith("▶") ?
+    el.textContent.replace("▶", "▼") :
+    el.textContent.replace("▼", "▶");
+}
+
+function rebuildIntentEditor() {
+  const el = document.getElementById("intent-editor");
+  const intents = scene.intents || {};
+  const intentNames = Object.keys(intents);
+
+  // Normalize arrays to IntentPoolConfig
+  for (const name of intentNames) {
+    if (Array.isArray(intents[name])) {
+      scene.intents[name] = { pool: intents[name], deterministic: false };
+    }
+  }
+
+  // Only show intents used by 2+ moments (shared) or orphans in the bottom section
+  const usageCounts = getIntentUsageCounts();
+  const sharedIntents = intentNames.filter(n => (usageCounts[n] || 0) >= 2);
+  const orphanIntents = intentNames.filter(n => !usageCounts[n]);
+  const bottomIntents = [...sharedIntents, ...orphanIntents];
+
+  if (bottomIntents.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+
+  let html = `<div class="shared-pools-toggle" onclick="toggleSharedPools(this)">▶ Shared Response Pools (${bottomIntents.length})</div>`;
+  html += `<div class="shared-pools-body collapsed">`;
+  for (const name of bottomIntents) {
+    html += `<div class="editor-group">`;
+    html += `<div class="editor-group-title">Response: ${name}${(usageCounts[name] || 0) >= 2 ? ` <span style="color:#555; font-size:10px;">(used by ${usageCounts[name]} moments)</span>` : ""}</div>`;
+    html += renderActionsHTML(name);
+    html += `</div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+
+  attachActionListeners(el);
 }
 
 function onReadingSlider(e) {
@@ -1086,6 +1406,8 @@ function onIntentCheckbox(e) {
   const input = e.target;
   const name = input.dataset.intent;
   scene.intents[name].deterministic = input.checked;
+  const label = input.parentElement.querySelector("label");
+  if (label) label.textContent = `Selection: ${input.checked ? "Fixed" : "Random"}`;
   debounceSendScene("intents");
 }
 
@@ -1100,8 +1422,23 @@ function debounceSendScene(section) {
   }, DEBOUNCE_MS);
 }
 
+function revertScene() {
+  if (!savedScene) return;
+  scene = JSON.parse(JSON.stringify(savedScene));
+  debounceSendScene("readings");
+  rebuildEditor();
+  const btn = document.getElementById("revert-btn");
+  btn.classList.add("flash");
+  btn.textContent = "Reverted!";
+  setTimeout(() => {
+    btn.classList.remove("flash");
+    btn.textContent = "Revert to Saved";
+  }, 1200);
+}
+
 function saveScene() {
   send({ type: "saveScene" });
+  savedScene = JSON.parse(JSON.stringify(scene));
   const btn = document.getElementById("save-btn");
   btn.classList.add("flash");
   btn.textContent = "Saved!";
@@ -1110,6 +1447,18 @@ function saveScene() {
     btn.textContent = "Save Scene";
   }, 1200);
 }
+
+// Keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+    e.preventDefault();
+    saveScene();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+    e.preventDefault();
+    revertScene();
+  }
+});
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 requestAnimationFrame(renderLoop);
