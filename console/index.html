@@ -55,7 +55,7 @@
     color: #555; margin-bottom: 10px;
   }
 
-  /* Quality / moment bars */
+  /* Quality / reading bars */
   .bar-row {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 5px; font-size: 11px;
@@ -119,7 +119,7 @@
   .editor-body { display: none; padding-top: 4px; }
   .editor-body.open { display: block; }
 
-  /* Section dividers between moments and responses */
+  /* Section dividers between readings and intents */
   .editor-section-label {
     font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
     color: #444; margin: 20px 0 10px; padding-bottom: 6px;
@@ -129,15 +129,81 @@
 
   .editor-group {
     background: #111; border: 1px solid #1e1e1e; border-radius: 6px;
-    padding: 14px 16px; margin-bottom: 10px;
+    padding: 0; margin-bottom: 14px;
     transition: border-color 0.4s, box-shadow 0.4s;
+    overflow: hidden;
   }
   .editor-group:hover { border-color: #2a2a2a; }
   .editor-group.active-glow {
-    border-color: #2a4a2a; box-shadow: 0 0 8px rgba(68,170,68,0.15);
+    border-color: #3a6a3a; box-shadow: 0 0 12px rgba(68,170,68,0.25), inset 0 0 20px rgba(68,170,68,0.03);
   }
   .editor-group.scroll-highlight {
-    border-color: #4a4; box-shadow: 0 0 12px rgba(68,170,68,0.3);
+    border-color: #4a4; box-shadow: 0 0 16px rgba(68,170,68,0.4);
+  }
+
+  /* Reading card header */
+  .reading-header {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0f0f0f;
+  }
+
+  /* Two-column layout */
+  .reading-columns {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    min-height: 80px;
+  }
+  @media (max-width: 800px) {
+    .reading-columns {
+      grid-template-columns: 1fr;
+    }
+    .reading-connector { display: none; }
+  }
+
+  .reading-col {
+    padding: 16px 18px 18px;
+  }
+  .reading-col-qualities {
+    background: #0f1114;
+  }
+  .reading-col-intents {
+    background: #14110f;
+  }
+
+  /* Visual connector between columns */
+  .reading-connector {
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: linear-gradient(to right, #0f1114, #14110f);
+  }
+  .reading-connector::before {
+    content: "";
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, #2a2a2a, transparent);
+    position: absolute;
+  }
+  .reading-connector::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 5px solid #2a2a2a;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    position: relative;
+    left: 1px;
+  }
+
+  .reading-col-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #3a3a3a;
+    margin-bottom: 12px;
   }
 
   /* Clickable live bars */
@@ -189,11 +255,11 @@
 
   .no-data { font-size: 11px; color: #444; font-style: italic; }
 
-  /* Moment editor enhancements */
-  .reading-header {
+  /* Reading editor enhancements */
+  .reading-title-row {
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   }
-  .reading-header .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
+  .reading-title-row .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
   .reading-label {
     font-family: inherit; font-size: 11px; background: #0d0d0d;
     color: #999; border: 1px solid #222; border-radius: 4px;
@@ -232,7 +298,7 @@
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 6px; font-size: 11px;
   }
-  .quality-row label { color: #777; min-width: 120px; }
+  .quality-row label { color: #777; min-width: 90px; font-size: 10px; }
   .quality-row input[type="range"] {
     flex: 1; max-width: 200px; accent-color: #4a4;
     height: 4px; -webkit-appearance: none; appearance: none;
@@ -251,7 +317,8 @@
   .quality-row .slider-val { font-variant-numeric: tabular-nums; }
   .gate-row {
     display: flex; align-items: center; gap: 6px;
-    margin-bottom: 6px; font-size: 11px; margin-left: 128px;
+    margin-bottom: 8px; font-size: 11px; margin-left: 12px;
+    padding-left: 8px; border-left: 2px solid #2a1f14;
     opacity: 0.7;
     transition: opacity 0.15s;
   }
@@ -303,24 +370,26 @@
     font-size: 11px; color: #555; margin-bottom: 12px;
   }
 
-  /* Response wiring on moments */
+  /* Intent wiring on reading cards */
   .intent-wire-section {
-    margin-top: 12px; padding-top: 12px; border-top: 1px solid #1a1a1a;
+    margin-top: 0; padding-top: 0; border-top: none;
   }
   .intent-wire-title {
     font-size: 9px; color: #555; text-transform: uppercase;
     letter-spacing: 1px; margin-bottom: 8px;
   }
   .intent-wire {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 4px; font-size: 11px; padding: 4px 8px;
-    border-radius: 4px;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 6px; font-size: 11px; padding: 6px 8px;
+    border-radius: 4px; flex-wrap: wrap;
     transition: background 0.15s;
   }
   .intent-wire:hover { background: rgba(255,255,255,0.02); }
   .intent-wire .intent-name {
     color: #7a7; min-width: 80px; font-weight: 600;
+    cursor: pointer; transition: color 0.15s;
   }
+  .intent-wire .intent-name:hover { color: #5c5; text-decoration: underline; }
   .intent-wire select {
     font-family: inherit; font-size: 10px; background: #0d0d0d;
     color: #888; border: 1px solid #1e1e1e; border-radius: 4px;
@@ -338,37 +407,10 @@
   .intent-wire input[type="number"]:focus { outline: none; border-color: #4a4; }
   .intent-wire label { color: #555; font-size: 10px; }
 
-  /* Inline actions within moment cards */
-  .inline-actions {
-    margin-left: 16px; margin-top: 4px; margin-bottom: 4px;
-  }
-  .inline-actions-collapsed .action-set-toggle {
-    font-size: 10px; color: #666; cursor: pointer; padding: 4px 8px;
-    margin-left: 16px; margin-top: 4px;
-    transition: color 0.15s;
-  }
-  .inline-actions-collapsed .action-set-toggle:hover { color: #999; }
-  .inline-actions-collapsed .action-set-body {
-    display: none; margin-left: 16px; margin-top: 4px;
-  }
-  .inline-actions-collapsed.expanded .action-set-body { display: block; }
-  .inline-actions-collapsed.expanded .action-set-toggle {
-    color: #999;
-  }
-
-  /* Shared response pools collapsible */
-  .shared-pools-toggle {
-    font-size: 10px; color: #555; text-transform: uppercase;
-    letter-spacing: 1px; cursor: pointer; padding: 8px 0;
-    transition: color 0.15s;
-  }
-  .shared-pools-toggle:hover { color: #888; }
-  .shared-pools-body.collapsed { display: none; }
-
-  /* Response editor — action picker */
+  /* Intent editor — action picker */
   .action-card {
     background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 5px;
-    padding: 10px 12px; margin-bottom: 8px; margin-left: 12px;
+    padding: 10px 12px; margin-bottom: 8px; margin-left: 4px;
     transition: border-color 0.15s;
   }
   .action-card:hover { border-color: #252525; }
@@ -395,6 +437,29 @@
   }
   .action-args .arg-row select:hover, .action-args .arg-row input:hover { border-color: #333; }
   .action-args .arg-row select:focus, .action-args .arg-row input:focus { outline: none; border-color: #4a4; }
+
+  /* Intent card in Intents section */
+  .intent-card { padding: 14px 18px; }
+  .intent-card-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .intent-card-header .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
+  .intent-name-input {
+    font-family: inherit; font-size: 11px; background: #0d0d0d;
+    color: #999; border: 1px solid #222; border-radius: 4px;
+    padding: 4px 8px; max-width: 180px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .intent-name-input:focus { outline: none; border-color: #4a4; color: #ccc; }
+  .intent-usage-badges {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .intent-usage-badge {
+    font-size: 9px; color: #666; background: #161616; border: 1px solid #222;
+    border-radius: 3px; padding: 2px 6px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .intent-usage-badge:hover { color: #5c5; border-color: #3a6a3a; }
 </style>
 </head>
 <body>
@@ -435,7 +500,7 @@
       <div id="dancers"><span class="no-data">waiting for data…</span></div>
     </div>
     <div class="panel">
-      <div class="panel-title">Moments</div>
+      <div class="panel-title">Readings</div>
       <div id="readings"><span class="no-data">waiting for data…</span></div>
     </div>
   </div>
@@ -468,12 +533,13 @@
 <div class="editor-section">
   <div class="editor-toggle" id="editor-toggle" onclick="toggleEditor()">▶ Scene Editor</div>
   <div class="editor-body" id="editor-body">
-    <div class="editor-section-label">Moments <span class="info-icon" title="A moment combines body inputs into a single signal that triggers responses">?</span></div>
+    <div class="editor-section-label">Readings <span class="info-icon" title="A reading combines qualities into a single signal that triggers intents">?</span></div>
     <div id="reading-editor"></div>
+    <div class="editor-section-label">Intents <span class="info-icon" title="An intent defines what happens — the actions triggered when a reading activates">?</span></div>
     <div id="intent-editor"></div>
-    <div style="margin-top:16px; padding-top:12px; border-top:1px solid #1a1a1a;">
-      <button class="save-btn" id="revert-btn" onclick="revertScene()">Revert to Saved</button>
-      <button class="save-btn" id="save-btn" onclick="saveScene()">Save Scene</button>
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid #1a1a1a; display:flex; gap:12px;">
+      <button class="save-btn" id="revert-btn" onclick="revertScene()" style="flex:0 0 auto;">Revert to Saved</button>
+      <button class="save-btn" id="save-btn" onclick="saveScene()" style="flex:0 0 auto;">Save Scene</button>
     </div>
   </div>
 </div>
@@ -656,12 +722,12 @@ function renderState(s) {
   const readingsEl = document.getElementById("readings");
   const readings = s.readings || [];
   if (readings.length === 0) {
-    readingsEl.innerHTML = '<span class="no-data">no moments</span>';
+    readingsEl.innerHTML = '<span class="no-data">no readings</span>';
   } else {
     let html = "";
     for (const r of readings) {
       const pct = Math.round(Math.max(0, Math.min(1, r.value)) * 100);
-      html += `<div class="bar-row clickable" onclick="scrollToMomentCard('${r.id}')" title="Click to jump to editor">
+      html += `<div class="bar-row clickable" onclick="scrollToReadingCard('${r.id}')" title="Click to jump to editor">
         <span class="bar-label"><span class="active-badge ${r.active ? 'on' : 'off'}"></span>${r.id}</span>
         <div class="bar-bg tall"><div class="bar-fill${r.active ? '' : ' dim'}" style="width:${pct}%"></div></div>
         <span class="bar-value">${r.value.toFixed(2)}</span>
@@ -673,11 +739,9 @@ function renderState(s) {
 
 function updateEditorLive(s) {
   // Update live quality values next to mix sliders
-  // Find first real dancer for quality values (skip _crowd)
   const dancers = s.dancers || {};
   const dancerIds = Object.keys(dancers).filter(id => !id.startsWith("_"));
   const qualities = dancerIds.length > 0 ? (dancers[dancerIds[0]].qualities || {}) : {};
-  // Also include _crowd qualities
   const crowdQualities = dancers._crowd ? (dancers._crowd.qualities || {}) : {};
   const allQualities = { ...qualities, ...crowdQualities };
 
@@ -696,7 +760,6 @@ function updateEditorLive(s) {
     const active = readingMap[id];
     el.className = "active-badge " + (active ? "on" : "off");
   });
-  // Glow active moment cards
   document.querySelectorAll("[data-reading-index]").forEach(card => {
     const ri = parseInt(card.dataset.readingIndex);
     const r = scene && scene.readings && scene.readings[ri];
@@ -708,17 +771,30 @@ function updateEditorLive(s) {
   });
 }
 
-function scrollToMomentCard(readingId) {
-  // Open editor if closed
+function scrollToReadingCard(readingId) {
   const body = document.getElementById("editor-body");
   if (!body.classList.contains("open")) toggleEditor();
 
-  // Find the card by matching reading id
   const cards = document.querySelectorAll("[data-reading-index]");
   for (const card of cards) {
     const ri = parseInt(card.dataset.readingIndex);
     const r = scene && scene.readings && scene.readings[ri];
     if (r && r.id === readingId) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("scroll-highlight");
+      setTimeout(() => card.classList.remove("scroll-highlight"), 1500);
+      return;
+    }
+  }
+}
+
+function scrollToIntentCard(intentName) {
+  const body = document.getElementById("editor-body");
+  if (!body.classList.contains("open")) toggleEditor();
+
+  const cards = document.querySelectorAll("[data-intent-name]");
+  for (const card of cards) {
+    if (card.dataset.intentName === intentName) {
       card.scrollIntoView({ behavior: "smooth", block: "center" });
       card.classList.add("scroll-highlight");
       setTimeout(() => card.classList.remove("scroll-highlight"), 1500);
@@ -763,13 +839,13 @@ const VALID_QUALITIES = [
 
 let readingCounter = 0;
 
-const MOMENT_TEMPLATES = [
+const READING_TEMPLATES = [
   {
     name: "Energy Burst",
     desc: "Trigger percussion when movement spikes",
     mix: { velocity: 1.0 },
     gate: { velocity: { above: 0.3 } },
-    response: { name: "energy-burst", mode: "edge" },
+    intent: { name: "energy-burst", mode: "edge" },
     actions: [{ action: "trigger/unmute_track", weight: 1, args: { track: "perc" } }]
   },
   {
@@ -777,7 +853,7 @@ const MOMENT_TEMPLATES = [
     desc: "Mute & filter down when dancers go still",
     mix: { stillness: 1.0 },
     gate: { stillness: { above: 0.3 } },
-    response: { name: "drop-out", mode: "continuous" },
+    intent: { name: "drop-out", mode: "continuous" },
     actions: [
       { action: "set/filter_cutoff", weight: 1, args: {} },
       { action: "trigger/mute_track", weight: 1, args: { track: "perc" } }
@@ -788,7 +864,7 @@ const MOMENT_TEMPLATES = [
     desc: "Add reverb when dancers synchronize",
     mix: { synchrony: 1.0 },
     gate: { synchrony: { above: 0.4 } },
-    response: { name: "sync-reward", mode: "continuous" },
+    intent: { name: "sync-reward", mode: "continuous" },
     actions: [{ action: "set/reverb_wet", weight: 1, args: {} }]
   },
   {
@@ -796,31 +872,29 @@ const MOMENT_TEMPLATES = [
     desc: "Lower volume as stillness increases",
     mix: { stillness: 1.0 },
     gate: { stillness: { above: 0.5 } },
-    response: { name: "calm-down", mode: "continuous" },
+    intent: { name: "calm-down", mode: "continuous" },
     actions: [{ action: "set/volume", weight: 1, args: {} }]
   }
 ];
 
-function addMomentFromTemplate(template) {
+function addReadingFromTemplate(template) {
   readingCounter++;
   if (!scene.readings) scene.readings = [];
   if (!scene.intents) scene.intents = {};
 
-  const responseName = template.response.name;
-  const intentWire = { intent: responseName };
-  if (template.response.mode === "continuous") intentWire.mode = "continuous";
+  const intentName = template.intent.name;
+  const intentWire = { intent: intentName };
+  if (template.intent.mode === "continuous") intentWire.mode = "continuous";
 
-  // Create the moment
   scene.readings.push({
     id: `reading-${readingCounter}`,
     label: template.name,
     mix: { ...template.mix },
     gate: JSON.parse(JSON.stringify(template.gate || {})),
-    intents: [Object.keys(intentWire).length === 1 ? responseName : intentWire]
+    intents: [Object.keys(intentWire).length === 1 ? intentName : intentWire]
   });
 
-  // Create the response with actions
-  scene.intents[responseName] = {
+  scene.intents[intentName] = {
     pool: JSON.parse(JSON.stringify(template.actions)),
     deterministic: false
   };
@@ -844,10 +918,10 @@ function rebuildReadingEditor() {
   // Show templates when no readings exist
   if (readings.length === 0) {
     html += `<div class="empty-state">`;
-    html += `<div class="empty-title">No moments yet — start from a template or create a blank one</div>`;
+    html += `<div class="empty-title">No readings yet — start from a template or create a blank one</div>`;
     html += `<div class="template-grid">`;
-    for (let ti = 0; ti < MOMENT_TEMPLATES.length; ti++) {
-      const t = MOMENT_TEMPLATES[ti];
+    for (let ti = 0; ti < READING_TEMPLATES.length; ti++) {
+      const t = READING_TEMPLATES[ti];
       html += `<div class="template-card" data-action="use-template" data-ti="${ti}">`;
       html += `<div class="template-name">${t.name}</div>`;
       html += `<div class="template-desc">${t.desc}</div>`;
@@ -860,19 +934,27 @@ function rebuildReadingEditor() {
     const r = readings[ri];
     html += `<div class="editor-group" data-reading-index="${ri}">`;
 
-    // Header: id + label + remove
+    // Header
     html += `<div class="reading-header">`;
+    html += `<div class="reading-title-row">`;
     html += `<span class="active-badge off" data-live-reading="${r.id || ri}"></span>`;
-    html += `<div class="editor-group-title">Moment: ${r.id || ri}</div>`;
-    html += `<input type="text" class="reading-label" placeholder="moment name…" value="${r.label || ""}" data-ri="${ri}" data-type="reading-label">`;
-    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove moment">×</button>`;
+    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
+    html += `<input type="text" class="reading-label" placeholder="reading name…" value="${r.label || ""}" data-ri="${ri}" data-type="reading-label">`;
+    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove reading">×</button>`;
+    html += `</div>`;
     html += `</div>`;
 
-    // Mix weights with remove per quality
+    // Two-column layout
+    html += `<div class="reading-columns">`;
+
+    // Left column: Qualities
+    html += `<div class="reading-col reading-col-qualities">`;
+    html += `<div class="reading-col-label">Qualities</div>`;
+
     const mix = r.mix || {};
     const mixKeys = Object.keys(mix);
     if (mixKeys.length === 0) {
-      html += `<div class="empty-hint">Pick a body input below to start sensing movement — try 'velocity' (tracks how fast someone is moving)</div>`;
+      html += `<div class="empty-hint">Pick a quality below to start sensing movement — try 'velocity'</div>`;
     }
     for (const q of mixKeys) {
       const w = mix[q];
@@ -889,14 +971,14 @@ function rebuildReadingEditor() {
       // Gate config for this quality
       const gc = r.gate && r.gate[q];
       html += `<div class="gate-row">
-        <label title="The moment activates when this quality rises above this value">activate above</label>
+        <label title="The reading activates when this quality rises above this value">above</label>
         <input type="number" min="0" max="1" step="0.01" value="${gc && gc.above !== undefined ? gc.above : ""}"
           placeholder="—" data-type="gate-above" data-ri="${ri}" data-gq="${q}"
-          title="The moment activates when ${q} rises above this value">
-        <label title="The moment activates when this quality drops below this value">activate below</label>
+          title="The reading activates when ${q} rises above this value">
+        <label title="The reading activates when this quality drops below this value">below</label>
         <input type="number" min="0" max="1" step="0.01" value="${gc && gc.below !== undefined ? gc.below : ""}"
           placeholder="—" data-type="gate-below" data-ri="${ri}" data-gq="${q}"
-          title="The moment activates when ${q} drops below this value">
+          title="The reading activates when ${q} drops below this value">
       </div>`;
     }
 
@@ -912,67 +994,62 @@ function rebuildReadingEditor() {
       </div>`;
     }
 
-    // Intent wiring section
-    html += `<div class="intent-wire-section">`;
-    html += `<div class="intent-wire-title">Responses <span class="info-icon" title="Connect responses to decide what happens when this moment activates">?</span></div>`;
+    html += `</div>`; // end qualities column
+
+    // Connector
+    html += `<div class="reading-connector"></div>`;
+
+    // Right column: Intents
+    html += `<div class="reading-col reading-col-intents">`;
+    html += `<div class="reading-col-label">Intents</div>`;
+
     const intents = r.intents || [];
     if (intents.length === 0) {
-      html += `<div class="empty-hint">Connect a response to decide what happens when this moment activates</div>`;
+      html += `<div class="empty-hint">Connect an intent to decide what happens when this reading activates</div>`;
     }
     for (let ii = 0; ii < intents.length; ii++) {
       const intent = intents[ii];
       const name = typeof intent === "string" ? intent : intent.intent;
-      const mode = (typeof intent === "object" && intent.mode === "continuous") ? "continuous" : "edge";
+      const mode = (typeof intent === "object" && intent.mode === "continuous") ? "continuous" : "";
       const above = (typeof intent === "object" && intent.above !== undefined) ? intent.above : "";
       const below = (typeof intent === "object" && intent.below !== undefined) ? intent.below : "";
       html += `<div class="intent-wire">
-        <span class="intent-name">${name}</span>
+        <span class="intent-name" data-intent-link="${name}" onclick="scrollToIntentCard('${name}')" title="Jump to intent">${name}</span>
         <select data-ri="${ri}" data-ii="${ii}" data-action="intent-mode"
-          title="Once: fires once when condition becomes true. Streaming: sends value every frame while condition is true">
-          <option value="edge" ${mode === "edge" ? "selected" : ""}>once</option>
-          <option value="continuous" ${mode === "continuous" ? "selected" : ""}>streaming</option>
+          title="One-shot: fires once when condition becomes true. Continuous: sends value every frame while condition is true">
+          <option value="" ${mode === "" ? "selected" : ""}>one-shot</option>
+          <option value="continuous" ${mode === "continuous" ? "selected" : ""}>continuous</option>
         </select>
-        <label title="This response only fires when the moment's value is above this threshold">fire above</label>
+        <label title="This intent only fires when the reading's value is above this threshold">above</label>
         <input type="number" min="0" max="1" step="0.01" value="${above}" placeholder="—"
-          title="This response only fires when the moment's value is above this threshold"
+          title="This intent only fires when the reading's value is above this threshold"
           data-ri="${ri}" data-ii="${ii}" data-action="intent-above">
-        <label title="This response only fires when the moment's value is below this threshold">fire below</label>
+        <label title="This intent only fires when the reading's value is below this threshold">below</label>
         <input type="number" min="0" max="1" step="0.01" value="${below}" placeholder="—"
-          title="This response only fires when the moment's value is below this threshold"
+          title="This intent only fires when the reading's value is below this threshold"
           data-ri="${ri}" data-ii="${ii}" data-action="intent-below">
-        <button class="remove-btn" data-ri="${ri}" data-ii="${ii}" data-action="remove-intent" title="Remove response">×</button>
+        <button class="remove-btn" data-ri="${ri}" data-ii="${ii}" data-action="remove-intent" title="Remove intent">×</button>
       </div>`;
-      // Inline actions for this response
-      const intentEntry = scene.intents && scene.intents[name];
-      if (intentEntry) {
-        const pool = intentEntry.pool || [];
-        if (pool.length <= 1) {
-          html += `<div class="inline-actions">${renderActionsHTML(name)}</div>`;
-        } else {
-          html += `<div class="inline-actions-collapsed">
-            <div class="action-set-toggle" onclick="this.parentElement.classList.toggle('expanded')">▶ Action Set (${pool.length} actions)</div>
-            <div class="action-set-body">${renderActionsHTML(name)}</div>
-          </div>`;
-        }
-      }
     }
     // Add intent dropdown
     const existingIntents = Object.keys(scene.intents || {});
     html += `<div class="add-row">
       <select data-ri="${ri}" data-action="add-intent">
-        <option value="">+ add response</option>
+        <option value="">+ add intent</option>
         ${existingIntents.map(n => `<option value="${n}">${n}</option>`).join("")}
-        <option value="__new__">New Response…</option>
+        <option value="__new__">New Intent…</option>
       </select>
     </div>`;
-    html += `</div>`;
 
-    html += `</div>`;
+    html += `</div>`; // end intents column
+    html += `</div>`; // end reading-columns
+
+    html += `</div>`; // end editor-group
   }
 
   // Add Reading button
-  html += `<div style="margin-top:8px;">
-    <button class="add-btn" data-action="add-reading">+ Add Moment</button>
+  html += `<div style="margin-top:16px;">
+    <button class="add-btn" style="padding:10px 20px; font-size:12px;" data-action="add-reading">+ Add Reading</button>
   </div>`;
 
   el.innerHTML = html;
@@ -980,11 +1057,9 @@ function rebuildReadingEditor() {
 }
 
 function attachReadingListeners(el) {
-  // Range sliders (only mix/gate types, not intent-weight which is handled by attachActionListeners)
   el.querySelectorAll("input[type=range][data-type='mix']").forEach(input => {
     input.addEventListener("input", onReadingSlider);
   });
-  // Label inputs
   el.querySelectorAll("input[data-type='reading-label']").forEach(input => {
     input.addEventListener("input", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -992,11 +1067,9 @@ function attachReadingListeners(el) {
       debounceSendScene("readings");
     });
   });
-  // Gate number inputs
   el.querySelectorAll("input[data-type='gate-above'], input[data-type='gate-below']").forEach(input => {
     input.addEventListener("input", onGateInput);
   });
-  // Quality picker selects
   el.querySelectorAll("select[data-action='quality-picker']").forEach(select => {
     select.addEventListener("change", (e) => {
       const q = e.target.value;
@@ -1009,7 +1082,6 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   });
-  // Remove quality buttons
   el.querySelectorAll("[data-action='remove-quality']").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -1020,7 +1092,6 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   });
-  // Remove reading buttons
   el.querySelectorAll("[data-action='remove-reading']").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -1029,7 +1100,6 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   });
-  // Intent mode toggles
   el.querySelectorAll("select[data-action='intent-mode']").forEach(select => {
     select.addEventListener("change", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -1037,7 +1107,6 @@ function attachReadingListeners(el) {
       updateIntentWire(ri, ii, { mode: e.target.value });
     });
   });
-  // Intent threshold inputs
   el.querySelectorAll("input[data-action='intent-above'], input[data-action='intent-below']").forEach(input => {
     input.addEventListener("input", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -1047,7 +1116,6 @@ function attachReadingListeners(el) {
       updateIntentWire(ri, ii, { [field]: val === "" ? undefined : parseFloat(val) });
     });
   });
-  // Remove intent buttons
   el.querySelectorAll("[data-action='remove-intent']").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const ri = parseInt(e.target.dataset.ri);
@@ -1057,14 +1125,13 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   });
-  // Add intent dropdowns
   el.querySelectorAll("select[data-action='add-intent']").forEach(select => {
     select.addEventListener("change", (e) => {
       let name = e.target.value;
       if (!name) return;
       const ri = parseInt(e.target.dataset.ri);
       if (name === "__new__") {
-        name = prompt("Response name:");
+        name = prompt("Intent name:");
         if (!name || !name.trim()) { e.target.value = ""; return; }
         name = name.trim();
         if (!scene.intents) scene.intents = {};
@@ -1079,14 +1146,12 @@ function attachReadingListeners(el) {
       rebuildIntentEditor();
     });
   });
-  // Template cards
   el.querySelectorAll("[data-action='use-template']").forEach(card => {
     card.addEventListener("click", (e) => {
       const ti = parseInt(e.currentTarget.dataset.ti);
-      addMomentFromTemplate(MOMENT_TEMPLATES[ti]);
+      addReadingFromTemplate(READING_TEMPLATES[ti]);
     });
   });
-  // Add reading button
   const addBtn = el.querySelector("[data-action='add-reading']");
   if (addBtn) {
     addBtn.addEventListener("click", () => {
@@ -1102,8 +1167,6 @@ function attachReadingListeners(el) {
       rebuildReadingEditor();
     });
   }
-  // Attach action listeners for inline actions within moment cards
-  attachActionListeners(el);
 }
 
 function onGateInput(e) {
@@ -1130,7 +1193,6 @@ function updateIntentWire(ri, ii, changes) {
   let intent = r.intents[ii];
   const name = typeof intent === "string" ? intent : intent.intent;
 
-  // Normalize to object form
   if (typeof intent === "string") {
     intent = { intent: name };
   } else {
@@ -1250,7 +1312,7 @@ function renderActionsHTML(name) {
   return html;
 }
 
-// Count how many moments reference each intent
+// Count how many readings reference each intent
 function getIntentUsageCounts() {
   const counts = {};
   for (const r of (scene.readings || [])) {
@@ -1260,6 +1322,21 @@ function getIntentUsageCounts() {
     }
   }
   return counts;
+}
+
+// Get list of reading IDs that reference a given intent
+function getIntentUsageReadings(intentName) {
+  const result = [];
+  for (const r of (scene.readings || [])) {
+    for (const intent of (r.intents || [])) {
+      const name = typeof intent === "string" ? intent : intent.intent;
+      if (name === intentName) {
+        result.push(r.id);
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 // Attach action-related listeners to a container element
@@ -1317,14 +1394,6 @@ function attachActionListeners(el) {
   });
 }
 
-function toggleSharedPools(el) {
-  const body = el.nextElementSibling;
-  body.classList.toggle("collapsed");
-  el.textContent = el.textContent.startsWith("▶") ?
-    el.textContent.replace("▶", "▼") :
-    el.textContent.replace("▼", "▶");
-}
-
 function rebuildIntentEditor() {
   const el = document.getElementById("intent-editor");
   const intents = scene.intents || {};
@@ -1337,29 +1406,128 @@ function rebuildIntentEditor() {
     }
   }
 
-  // Only show intents used by 2+ moments (shared) or orphans in the bottom section
   const usageCounts = getIntentUsageCounts();
-  const sharedIntents = intentNames.filter(n => (usageCounts[n] || 0) >= 2);
-  const orphanIntents = intentNames.filter(n => !usageCounts[n]);
-  const bottomIntents = [...sharedIntents, ...orphanIntents];
 
-  if (bottomIntents.length === 0) {
-    el.innerHTML = "";
+  if (intentNames.length === 0) {
+    el.innerHTML = `<div class="empty-hint">No intents yet — add one from a reading card above, or create one below</div>
+      <div style="margin-top:8px;">
+        <button class="add-btn" data-action="add-intent-standalone">+ Add Intent</button>
+      </div>`;
+    el.querySelector("[data-action='add-intent-standalone']").addEventListener("click", onAddIntentStandalone);
     return;
   }
 
-  let html = `<div class="shared-pools-toggle" onclick="toggleSharedPools(this)">▶ Shared Response Pools (${bottomIntents.length})</div>`;
-  html += `<div class="shared-pools-body collapsed">`;
-  for (const name of bottomIntents) {
-    html += `<div class="editor-group">`;
-    html += `<div class="editor-group-title">Response: ${name}${(usageCounts[name] || 0) >= 2 ? ` <span style="color:#555; font-size:10px;">(used by ${usageCounts[name]} moments)</span>` : ""}</div>`;
-    html += renderActionsHTML(name);
+  let html = "";
+  for (const name of intentNames) {
+    const usageReadings = getIntentUsageReadings(name);
+
+    html += `<div class="editor-group" data-intent-name="${name}">`;
+    html += `<div class="intent-card">`;
+
+    // Header with editable name
+    html += `<div class="intent-card-header">`;
+    html += `<div class="editor-group-title">Intent:</div>`;
+    html += `<input type="text" class="intent-name-input" value="${name}" data-intent="${name}" data-action="rename-intent">`;
+    html += `<button class="remove-btn" data-intent="${name}" data-action="remove-intent-card" title="Remove intent">×</button>`;
     html += `</div>`;
+
+    // Usage badges
+    if (usageReadings.length > 0) {
+      html += `<div class="intent-usage-badges">`;
+      for (const rid of usageReadings) {
+        html += `<span class="intent-usage-badge" onclick="scrollToReadingCard('${rid}')" title="Jump to reading">${rid}</span>`;
+      }
+      html += `</div>`;
+    }
+
+    // Actions
+    html += renderActionsHTML(name);
+
+    html += `</div>`; // end intent-card
+    html += `</div>`; // end editor-group
   }
-  html += `</div>`;
+
+  html += `<div style="margin-top:8px;">
+    <button class="add-btn" data-action="add-intent-standalone">+ Add Intent</button>
+  </div>`;
+
   el.innerHTML = html;
 
+  // Attach action listeners
   attachActionListeners(el);
+
+  // Rename intent listeners
+  el.querySelectorAll("[data-action='rename-intent']").forEach(input => {
+    input.addEventListener("change", (e) => {
+      const oldName = e.target.dataset.intent;
+      const newName = e.target.value.trim();
+      if (!newName || newName === oldName) {
+        e.target.value = oldName;
+        return;
+      }
+      if (scene.intents[newName]) {
+        alert("An intent with that name already exists.");
+        e.target.value = oldName;
+        return;
+      }
+      // Rename in intents map
+      scene.intents[newName] = scene.intents[oldName];
+      delete scene.intents[oldName];
+      // Update all reading references
+      for (const r of (scene.readings || [])) {
+        if (!r.intents) continue;
+        for (let i = 0; i < r.intents.length; i++) {
+          const intent = r.intents[i];
+          if (typeof intent === "string" && intent === oldName) {
+            r.intents[i] = newName;
+          } else if (typeof intent === "object" && intent.intent === oldName) {
+            intent.intent = newName;
+          }
+        }
+      }
+      debounceSendScene("intents");
+      rebuildEditor();
+    });
+  });
+
+  // Remove intent card listeners
+  el.querySelectorAll("[data-action='remove-intent-card']").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const name = e.target.dataset.intent;
+      const usageReadings = getIntentUsageReadings(name);
+      if (usageReadings.length > 0) {
+        if (!confirm(`"${name}" is used by ${usageReadings.length} reading(s): ${usageReadings.join(", ")}. Remove it and all references?`)) return;
+        // Remove references from readings
+        for (const r of (scene.readings || [])) {
+          if (!r.intents) continue;
+          r.intents = r.intents.filter(intent => {
+            const n = typeof intent === "string" ? intent : intent.intent;
+            return n !== name;
+          });
+        }
+      }
+      delete scene.intents[name];
+      debounceSendScene("intents");
+      rebuildEditor();
+    });
+  });
+
+  // Add intent standalone button
+  el.querySelector("[data-action='add-intent-standalone']").addEventListener("click", onAddIntentStandalone);
+}
+
+function onAddIntentStandalone() {
+  const name = prompt("Intent name:");
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (!scene.intents) scene.intents = {};
+  if (scene.intents[trimmed]) {
+    alert("An intent with that name already exists.");
+    return;
+  }
+  scene.intents[trimmed] = { pool: [], deterministic: false };
+  debounceSendScene("intents");
+  rebuildIntentEditor();
 }
 
 function onReadingSlider(e) {
