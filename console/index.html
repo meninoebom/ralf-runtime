@@ -147,6 +147,21 @@
     border-bottom: 1px solid #1a1a1a;
     background: #0f0f0f;
   }
+  .reading-name {
+    background: transparent; border: 1px solid #333; color: #ddd;
+    padding: 3px 8px; border-radius: 4px; font-size: 13px;
+    font-family: inherit; margin-left: 4px;
+  }
+  .reading-name:focus { border-color: #4a4; outline: none; }
+  .reading-footer {
+    padding: 8px 18px; border-top: 1px solid #1a1a1a;
+    display: flex; justify-content: flex-end;
+  }
+  .remove-reading-btn {
+    background: transparent; border: 1px solid #533; color: #a66;
+    padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;
+  }
+  .remove-reading-btn:hover { background: #331111; border-color: #844; color: #e88; }
 
   /* Two-column layout */
   .reading-columns {
@@ -260,14 +275,6 @@
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   }
   .reading-title-row .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
-  .reading-label {
-    font-family: inherit; font-size: 11px; background: #0d0d0d;
-    color: #999; border: 1px solid #222; border-radius: 4px;
-    padding: 4px 8px; flex: 1; max-width: 180px;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .reading-label::placeholder { color: #333; font-style: italic; }
-  .reading-label:focus { outline: none; border-color: #4a4; color: #ccc; }
   .remove-btn {
     font-family: inherit; font-size: 12px; background: none;
     border: 1px solid transparent; border-radius: 4px; color: #444;
@@ -949,9 +956,8 @@ function rebuildReadingEditor() {
     html += `<div class="reading-header">`;
     html += `<div class="reading-title-row">`;
     html += `<span class="active-badge off" data-live-reading="${r.id || ri}"></span>`;
-    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
-    html += `<input type="text" class="reading-label" placeholder="reading name…" value="${r.label || ""}" data-ri="${ri}" data-type="reading-label">`;
-    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove reading">×</button>`;
+    html += `<span class="editor-group-title">Reading:</span>`;
+    html += `<input type="text" class="reading-name" value="${r.id || ""}" data-ri="${ri}" data-type="reading-name" placeholder="reading id">`;
     html += `</div>`;
     html += `</div>`;
 
@@ -1055,6 +1061,10 @@ function rebuildReadingEditor() {
     html += `</div>`; // end intents column
     html += `</div>`; // end reading-columns
 
+    html += `<div class="reading-footer">`;
+    html += `<button class="remove-reading-btn" data-ri="${ri}" data-action="remove-reading">Remove Reading</button>`;
+    html += `</div>`;
+
     html += `</div>`; // end editor-group
   }
 
@@ -1071,11 +1081,15 @@ function attachReadingListeners(el) {
   el.querySelectorAll("input[type=range][data-type='mix']").forEach(input => {
     input.addEventListener("input", onReadingSlider);
   });
-  el.querySelectorAll("input[data-type='reading-label']").forEach(input => {
-    input.addEventListener("input", (e) => {
+  el.querySelectorAll("input[data-type='reading-name']").forEach(input => {
+    input.addEventListener("change", (e) => {
       const ri = parseInt(e.target.dataset.ri);
-      scene.readings[ri].label = e.target.value || undefined;
+      const newId = e.target.value.trim().replace(/[^a-zA-Z0-9_-]/g, "-");
+      if (!newId) { e.target.value = scene.readings[ri].id; return; }
+      scene.readings[ri].id = newId;
       debounceSendScene("readings");
+      rebuildReadingEditor();
+      rebuildIntentEditor();
     });
   });
   el.querySelectorAll("input[data-type='gate-above'], input[data-type='gate-below']").forEach(input => {
@@ -1106,9 +1120,12 @@ function attachReadingListeners(el) {
   el.querySelectorAll("[data-action='remove-reading']").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const ri = parseInt(e.target.dataset.ri);
+      const name = scene.readings[ri].id || `reading ${ri}`;
+      if (!confirm(`Remove reading "${name}"? This cannot be undone.`)) return;
       scene.readings.splice(ri, 1);
       debounceSendScene("readings");
       rebuildReadingEditor();
+      rebuildIntentEditor();
     });
   });
   el.querySelectorAll("select[data-action='intent-mode']").forEach(select => {
