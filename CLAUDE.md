@@ -113,7 +113,9 @@ npm test       # Run tests (vitest)
 
 The console is a single HTML file (`console/index.html`) served by the runtime on `:3300` (`RALF_CONSOLE_PORT`).
 
-**Dashboard panels**: Dancers (quality bars), Readings (value + active badge), Acts (scrolling log + rate), Translator (tempo/playing/scene), System (connection, frames).
+**Dashboard panels**: Dancers (quality bars, stale dancers dimmed with "(stale)" label), Readings (value + active badge, deduplicated across dancers), Acts (scrolling log + rate), Translator (tempo/playing/scene), System (connection, frames).
+
+**Resilience**: Auto-reconnect with exponential backoff (1s→2s→4s→8s→15s max). Amber "stale" badge + dimmed panels when no state update for 3s. Client-side heartbeat pings every 10s, force-closes after 15s no response. WebSocket errors logged to console.
 
 **Scene Editor** (collapsible): Two sections mirroring the data model:
 - **Readings section**: Left-to-right card layout per reading. Left column (Qualities): mix weight sliders, gate thresholds, live values. Right column (Intents): wired intent names as clickable links (scroll to intent section), one-shot/continuous mode toggle, per-wire thresholds. Add/remove readings, add/remove qualities.
@@ -166,8 +168,9 @@ Unknown quality names are silently ignored.
 
 **Phase 6 (Scene Editor) — COMPLETE.** Full composition tool: add/remove readings, qualities, intents, and actions. Manifest-driven action picker. Two-section layout (Readings + Intents) mirrors data model. Reading name editing, revert-from-disk, dashboard dedup. 78 tests passing.
 
+**Phase 7 (Hardening) — COMPLETE.** Smart launcher kills stale processes on all 7 ports before start. Runtime: SIGTERM handler, uncaughtException/unhandledRejection safety nets, port binding error messages, tick loop error boundary (log + skip frame). WebSocket heartbeat pings clients every 10s, terminates after 15s. Console: exponential backoff reconnect, stale-state indicator, client-side heartbeat, stale dancer styling. State broadcasts include `stale` flag per dancer.
+
 **Next priorities:**
-- Hardening — smart launcher, heartbeat monitoring, reconnection logic
 - Scene library — save/load/share scene configs
 - Trajectory controls — windowed slope for "building" vs "sustaining" vs "releasing"
 
