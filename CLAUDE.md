@@ -74,7 +74,7 @@ Gates use two thresholds: enter active at `threshold + band`, exit at `threshold
 If no quality update arrives for a dancer for 90 frames (3 seconds), decay values toward 0 at 0.02/frame. Prevents disconnected dancers from leaving system stuck.
 
 ### Trajectory
-Direction of change of a quality/reading over time. Windowed slope (5-10 frames). Enables "building" vs "sustaining" vs "releasing" as distinct readable states.
+Optional gate on readings that filters by direction of change. Computed as windowed linear regression slope over the reading's recent values. Config: `trajectory: { window: 10, above: 0.1 }` means "only activate when value is building (slope > 0.1)". `below: -0.1` detects releasing. Slope is exposed in state broadcasts (`reading.slope`) and shown in the console dashboard with ↑/↓/→ arrows. 90 tests cover trajectory gating.
 
 ### Relational qualities (crowd mode)
 When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtual dancer with three qualities:
@@ -170,9 +170,10 @@ Unknown quality names are silently ignored.
 
 **Phase 7 (Hardening) — COMPLETE.** Smart launcher kills stale processes on all 7 ports before start. Runtime: SIGTERM handler, uncaughtException/unhandledRejection safety nets, port binding error messages, tick loop error boundary (log + skip frame). WebSocket heartbeat pings clients every 10s, terminates after 15s. Console: exponential backoff reconnect, stale-state indicator, client-side heartbeat, stale dancer styling. State broadcasts include `stale` flag per dancer.
 
+**Phase 8 (Trajectory) — COMPLETE.** Windowed linear regression slope as optional reading gate. Tests (8 trajectory + 5 validator = 90 total), slope exposed in state broadcasts, console UI for trajectory config (window/above/below), live slope display in dashboard and editor with ↑/↓/→ arrows.
+
 **Next priorities:**
 - Scene library — save/load/share scene configs
-- Trajectory controls — windowed slope for "building" vs "sustaining" vs "releasing"
 
 ## After Completing Work
 
