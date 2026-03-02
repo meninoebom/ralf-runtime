@@ -141,6 +141,42 @@ describe("Manifest-aware validation", () => {
     expect(validateScene(scene, testManifest)).toEqual([]);
   });
 
+  it("validates trajectory window must be integer >= 2", () => {
+    const scene = validScene();
+    scene.readings[0].trajectory = { window: 1, above: 0.05 };
+    const errors = validateScene(scene);
+    expect(errors.length).toBe(1);
+    expect(errors[0].path).toContain("trajectory.window");
+  });
+
+  it("validates trajectory window rejects non-integer", () => {
+    const scene = validScene();
+    scene.readings[0].trajectory = { window: 3.5, above: 0.05 };
+    const errors = validateScene(scene);
+    expect(errors.length).toBe(1);
+    expect(errors[0].path).toContain("trajectory.window");
+  });
+
+  it("warns when trajectory has neither above nor below", () => {
+    const scene = validScene();
+    scene.readings[0].trajectory = { window: 5 };
+    const errors = validateScene(scene);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("no effect");
+  });
+
+  it("accepts valid trajectory config", () => {
+    const scene = validScene();
+    scene.readings[0].trajectory = { window: 5, above: 0.05 };
+    expect(validateScene(scene)).toEqual([]);
+  });
+
+  it("accepts trajectory with below only", () => {
+    const scene = validScene();
+    scene.readings[0].trajectory = { window: 5, below: -0.05 };
+    expect(validateScene(scene)).toEqual([]);
+  });
+
   it("skips manifest validation when no manifest provided", () => {
     const scene = validScene();
     scene.intents = { add_energy: [{ action: "trigger/anything", weight: 1 }] };

@@ -352,6 +352,30 @@
   }
   .gate-row input[type="number"]:focus { outline: none; border-color: #b87333; color: #d4956a; }
 
+  .trajectory-row {
+    display: flex; align-items: center; gap: 6px;
+    margin: 10px 0 8px; font-size: 11px;
+    padding: 8px 10px; border-left: 2px solid #1a2a3a;
+    background: #0d1118; border-radius: 0 4px 4px 0;
+    opacity: 0.7; transition: opacity 0.15s;
+  }
+  .trajectory-row:hover { opacity: 1; }
+  .trajectory-row .traj-label { color: #668; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .trajectory-row label { color: #557; min-width: 40px; font-size: 10px; }
+  .trajectory-row input[type="number"] {
+    font-family: inherit; font-size: 11px; background: #0d0d0d;
+    color: #6688bb; border: 1px solid #1a2a3a; border-radius: 4px;
+    padding: 3px 6px; width: 60px;
+    transition: border-color 0.15s;
+  }
+  .trajectory-row input[type="number"]:focus { outline: none; border-color: #6688bb; color: #88aade; }
+  .trajectory-row .live-slope { font-size: 10px; color: #555; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  .slope-display { font-size: 10px; color: #666; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .slope-up { color: #5c5; }
+  .slope-down { color: #c55; }
+  .slope-flat { color: #555; }
+
   .info-icon {
     display: inline-block; font-size: 9px; color: #444;
     border: 1px solid #333; border-radius: 50%; width: 14px; height: 14px;
@@ -800,10 +824,11 @@ function renderState(s) {
   const readingAgg = {};
   for (const r of rawReadings) {
     if (!readingAgg[r.id]) {
-      readingAgg[r.id] = { id: r.id, value: r.value, active: r.active };
+      readingAgg[r.id] = { id: r.id, value: r.value, active: r.active, slope: r.slope };
     } else {
       readingAgg[r.id].value = Math.max(readingAgg[r.id].value, r.value);
       readingAgg[r.id].active = readingAgg[r.id].active || r.active;
+      if (r.slope !== undefined) readingAgg[r.id].slope = r.slope;
     }
   }
   const readings = Object.values(readingAgg);
@@ -813,10 +838,16 @@ function renderState(s) {
     let html = "";
     for (const r of readings) {
       const pct = Math.round(Math.max(0, Math.min(1, r.value)) * 100);
+      let slopeHtml = "";
+      if (r.slope !== undefined && r.slope !== null) {
+        const arrow = r.slope > 0.03 ? "↑" : r.slope < -0.03 ? "↓" : "→";
+        const cls = r.slope > 0.03 ? "slope-up" : r.slope < -0.03 ? "slope-down" : "slope-flat";
+        slopeHtml = `<span class="slope-display ${cls}">${arrow}${Math.abs(r.slope).toFixed(2)}</span>`;
+      }
       html += `<div class="bar-row clickable" onclick="scrollToReadingCard('${r.id}')" title="Click to jump to editor">
         <span class="bar-label"><span class="active-badge ${r.active ? 'on' : 'off'}"></span>${r.id}</span>
         <div class="bar-bg tall"><div class="bar-fill${r.active ? '' : ' dim'}" style="width:${pct}%"></div></div>
-        <span class="bar-value">${r.value.toFixed(2)}</span>
+        <span class="bar-value">${r.value.toFixed(2)}${slopeHtml}</span>
       </div>`;
     }
     readingsEl.innerHTML = html;
@@ -853,6 +884,23 @@ function updateEditorLive(s) {
       card.classList.add("active-glow");
     } else {
       card.classList.remove("active-glow");
+    }
+  });
+
+  // Update live slope displays in editor trajectory rows
+  const slopeMap = {};
+  for (const r of readings) {
+    if (r.slope !== undefined) slopeMap[r.id] = r.slope;
+  }
+  document.querySelectorAll("[data-live-slope]").forEach(el => {
+    const id = el.dataset.liveSlope;
+    const slope = slopeMap[id];
+    if (slope !== undefined && slope !== null) {
+      const arrow = slope > 0.03 ? "↑" : slope < -0.03 ? "↓" : "→";
+      const cls = slope > 0.03 ? "slope-up" : slope < -0.03 ? "slope-down" : "slope-flat";
+      el.innerHTML = `<span class="${cls}">${arrow}${Math.abs(slope).toFixed(2)}</span>`;
+    } else {
+      el.textContent = "—";
     }
   });
 }
@@ -1067,6 +1115,25 @@ function rebuildReadingEditor() {
       </div>`;
     }
 
+    // Trajectory config
+    const traj = r.trajectory || {};
+    html += `<div class="trajectory-row">
+      <span class="traj-label">Trajectory</span>
+      <label title="Number of frames to compute slope over (min 2)">window</label>
+      <input type="number" min="2" step="1" value="${traj.window || ""}"
+        placeholder="—" data-type="traj-window" data-ri="${ri}"
+        title="Number of frames to compute slope over (min 2, empty = disabled)">
+      <label title="Slope must be above this to activate">above</label>
+      <input type="number" step="0.01" value="${traj.above !== undefined ? traj.above : ""}"
+        placeholder="—" data-type="traj-above" data-ri="${ri}"
+        title="Slope must be above this value to activate">
+      <label title="Slope must be below this to activate">below</label>
+      <input type="number" step="0.01" value="${traj.below !== undefined ? traj.below : ""}"
+        placeholder="—" data-type="traj-below" data-ri="${ri}"
+        title="Slope must be below this value to activate">
+      <span class="live-slope" data-live-slope="${r.id}">—</span>
+    </div>`;
+
     // Quality picker dropdown
     const usedQualities = new Set(mixKeys);
     const available = VALID_QUALITIES.filter(q => !usedQualities.has(q));
@@ -1162,6 +1229,9 @@ function attachReadingListeners(el) {
   });
   el.querySelectorAll("input[data-type='gate-above'], input[data-type='gate-below']").forEach(input => {
     input.addEventListener("input", onGateInput);
+  });
+  el.querySelectorAll("input[data-type='traj-window'], input[data-type='traj-above'], input[data-type='traj-below']").forEach(input => {
+    input.addEventListener("input", onTrajectoryInput);
   });
   el.querySelectorAll("select[data-action='quality-picker']").forEach(select => {
     select.addEventListener("change", (e) => {
@@ -1280,6 +1350,32 @@ function onGateInput(e) {
     if (Object.keys(r.gate[gq]).length === 0) delete r.gate[gq];
   } else {
     r.gate[gq][type === "gate-above" ? "above" : "below"] = parseFloat(val);
+  }
+  debounceSendScene("readings");
+}
+
+function onTrajectoryInput(e) {
+  const input = e.target;
+  const ri = parseInt(input.dataset.ri);
+  const type = input.dataset.type;
+  const r = scene.readings[ri];
+
+  // Read all three trajectory values from the DOM inputs in this reading card
+  const card = input.closest(".editor-group");
+  const windowInput = card.querySelector("input[data-type='traj-window']");
+  const aboveInput = card.querySelector("input[data-type='traj-above']");
+  const belowInput = card.querySelector("input[data-type='traj-below']");
+
+  const windowVal = windowInput.value.trim();
+  if (windowVal === "" || parseInt(windowVal) < 2) {
+    delete r.trajectory;
+  } else {
+    if (!r.trajectory) r.trajectory = {};
+    r.trajectory.window = parseInt(windowVal);
+    const aboveVal = aboveInput.value.trim();
+    if (aboveVal === "") { delete r.trajectory.above; } else { r.trajectory.above = parseFloat(aboveVal); }
+    const belowVal = belowInput.value.trim();
+    if (belowVal === "") { delete r.trajectory.below; } else { r.trajectory.below = parseFloat(belowVal); }
   }
   debounceSendScene("readings");
 }

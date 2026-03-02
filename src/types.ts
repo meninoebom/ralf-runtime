@@ -126,6 +126,7 @@ export interface ReadingValue {
   id: string;
   value: number;
   active: boolean; // true = gate passed, reading is live
+  slope?: number;  // trajectory slope (windowed linear regression)
 }
 
 export interface ActMessage {

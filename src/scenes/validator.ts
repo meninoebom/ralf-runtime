@@ -63,6 +63,23 @@ export function validateScene(scene: SceneConfig, manifest?: TranslatorManifest)
       }
     }
 
+    // Check trajectory config
+    if (reading.trajectory) {
+      const traj = reading.trajectory;
+      if (!Number.isInteger(traj.window) || traj.window < 2) {
+        errors.push({ path: `${prefix}.trajectory.window`, message: `Trajectory window must be a positive integer ≥ 2, got ${traj.window}` });
+      }
+      if (traj.above !== undefined && typeof traj.above !== "number") {
+        errors.push({ path: `${prefix}.trajectory.above`, message: `Trajectory above must be a number` });
+      }
+      if (traj.below !== undefined && typeof traj.below !== "number") {
+        errors.push({ path: `${prefix}.trajectory.below`, message: `Trajectory below must be a number` });
+      }
+      if (traj.above === undefined && traj.below === undefined) {
+        errors.push({ path: `${prefix}.trajectory`, message: `Trajectory has neither above nor below — it will have no effect` });
+      }
+    }
+
     // Check intent references
     if (reading.intents) {
       for (let j = 0; j < reading.intents.length; j++) {

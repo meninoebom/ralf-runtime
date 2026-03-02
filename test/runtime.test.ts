@@ -263,3 +263,210 @@ describe("Runtime intent resolution", () => {
     runtime.tick();
   });
 });
+
+describe("trajectory gating", () => {
+  it("detects building (increasing values)", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, above: 0.05 },
+          intents: ["add_energy"],
+        },
+      ],
+      intents: { add_energy: [{ action: "boom", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Feed increasing values
+    const values = [10, 30, 50, 70, 90];
+    for (const v of values) {
+      calibrateAndSet(runtime, v);
+      runtime.tick();
+    }
+
+    expect(acts.length).toBeGreaterThan(0);
+  });
+
+  it("blocks decreasing values when above is set", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, above: 0.05 },
+          intents: ["add_energy"],
+        },
+      ],
+      intents: { add_energy: [{ action: "boom", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Feed decreasing values
+    const values = [90, 70, 50, 30, 10];
+    for (const v of values) {
+      calibrateAndSet(runtime, v);
+      runtime.tick();
+    }
+
+    expect(acts.length).toBe(0);
+  });
+
+  it("blocks constant values when above is set", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, above: 0.05 },
+          intents: ["add_energy"],
+        },
+      ],
+      intents: { add_energy: [{ action: "boom", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Feed constant values
+    for (let i = 0; i < 5; i++) {
+      calibrateAndSet(runtime, 50);
+      runtime.tick();
+    }
+
+    expect(acts.length).toBe(0);
+  });
+
+  it("detects releasing (decreasing values with below threshold)", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, below: -0.05 },
+          intents: ["strip_energy"],
+        },
+      ],
+      intents: { strip_energy: [{ action: "filter", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Feed decreasing values
+    const values = [90, 70, 50, 30, 10];
+    for (const v of values) {
+      calibrateAndSet(runtime, v);
+      runtime.tick();
+    }
+
+    expect(acts.length).toBeGreaterThan(0);
+  });
+
+  it("stays inactive with insufficient data (fewer frames than window)", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, above: 0.05 },
+          intents: ["add_energy"],
+        },
+      ],
+      intents: { add_energy: [{ action: "boom", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Only 1 tick — not enough data for slope
+    calibrateAndSet(runtime, 80);
+    runtime.tick();
+
+    expect(acts.length).toBe(0);
+  });
+
+  it("requires both regular gate AND trajectory to pass", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          gate: { velocity: { above: 0.3 } },
+          trajectory: { window: 5, above: 0.05 },
+          intents: ["add_energy"],
+        },
+      ],
+      intents: { add_energy: [{ action: "boom", weight: 1 }] },
+    });
+
+    const runtime = new Runtime(scene);
+    const acts: ActMessage[] = [];
+    runtime.setActHandler((msg) => acts.push(msg));
+
+    // Feed increasing values that are above gate threshold
+    const values = [10, 30, 50, 70, 90];
+    for (const v of values) {
+      calibrateAndSet(runtime, v);
+      runtime.tick();
+    }
+
+    // Should fire — both gate (velocity > 0.3) and trajectory (slope > 0.05) pass
+    expect(acts.length).toBeGreaterThan(0);
+
+    // Now test: increasing values but below gate threshold
+    const runtime2 = new Runtime(scene);
+    const acts2: ActMessage[] = [];
+    runtime2.setActHandler((msg) => acts2.push(msg));
+
+    // Values too low for gate (< 0.3 normalized)
+    const lowValues = [1, 3, 5, 7, 9];
+    for (const v of lowValues) {
+      calibrateAndSet(runtime2, v);
+      runtime2.tick();
+    }
+
+    expect(acts2.length).toBe(0);
+  });
+
+  it("exposes slope on reading state", () => {
+    const scene = makeScene({
+      readings: [
+        {
+          id: "energy",
+          mix: { velocity: 1.0 },
+          trajectory: { window: 5, above: 0.0 },
+        },
+      ],
+      intents: {},
+    });
+
+    const runtime = new Runtime(scene);
+    let lastReadings: import("../src/types.js").ReadingValue[] = [];
+    runtime.setStateHandler((state) => {
+      lastReadings = state.readings;
+    });
+
+    // Feed increasing values to get a positive slope
+    const values = [10, 30, 50, 70, 90];
+    for (const v of values) {
+      calibrateAndSet(runtime, v);
+      runtime.tick();
+    }
+
+    const reading = lastReadings.find(r => r.id === "energy");
+    expect(reading).toBeDefined();
+    expect(reading!.slope).toBeTypeOf("number");
+    expect(reading!.slope).toBeGreaterThan(0);
+  });
+});

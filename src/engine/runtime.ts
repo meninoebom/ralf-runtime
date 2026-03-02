@@ -219,6 +219,8 @@ export class Runtime {
               }
               const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
+              reading.slope = slope;
+
               // Apply trajectory gate
               let trajActive = true;
               if (readingConfig.trajectory.above !== undefined && slope < readingConfig.trajectory.above)
