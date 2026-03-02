@@ -153,8 +153,20 @@ async function main() {
   });
 
   // Start everything
-  osc.start();
-  ws.start();
+  try {
+    osc.start();
+  } catch (err) {
+    log("error", `Failed to start OSC server on port ${OSC_IN_PORT}: ${err}`);
+    process.exit(1);
+  }
+
+  try {
+    ws.start();
+  } catch (err) {
+    log("error", `Failed to start WebSocket server on port ${WS_PORT}: ${err}`);
+    process.exit(1);
+  }
+
   runtime.start(30);
 
   // HTTP server for console static files
@@ -165,6 +177,7 @@ async function main() {
   };
 
   const consoleDir = join(process.cwd(), "console");
+  try {
   Bun.serve({
     port: CONSOLE_PORT,
     async fetch(req) {
@@ -182,6 +195,10 @@ async function main() {
       return new Response(file, { headers: { "Content-Type": contentType } });
     },
   });
+  } catch (err) {
+    log("error", `Failed to start console HTTP server on port ${CONSOLE_PORT}: ${err}`);
+    process.exit(1);
+  }
 
   console.log(`
 ┌─────────────────────────────────────┐
@@ -199,12 +216,27 @@ async function main() {
 `);
 
   // Graceful shutdown
-  process.on("SIGINT", () => {
+  const shutdown = (code: number) => {
     log("scene", "Shutting down...");
     runtime.stop();
     osc.stop();
     ws.stop();
-    process.exit(0);
+    process.exit(code);
+  };
+
+  process.on("SIGINT", () => shutdown(0));
+  process.on("SIGTERM", () => shutdown(0));
+
+  process.on("uncaughtException", (err) => {
+    console.error("[runtime] uncaughtException:", err);
+    try { runtime.stop(); osc.stop(); ws.stop(); } catch {}
+    process.exit(1);
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("[runtime] unhandledRejection:", reason);
+    try { runtime.stop(); osc.stop(); ws.stop(); } catch {}
+    process.exit(1);
   });
 }
 

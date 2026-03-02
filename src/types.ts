@@ -119,6 +119,7 @@ export interface DancerState {
   qualities: Record<QualityName, number>;
   lastGesture: string | null;
   lastGestureTime: number;
+  stale?: boolean;
 }
 
 export interface ReadingValue {

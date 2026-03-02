@@ -270,6 +270,19 @@
 
   .no-data { font-size: 11px; color: #444; font-style: italic; }
 
+  /* Stale indicator */
+  #stale-badge {
+    display: none; font-size: 10px; color: #d4a; background: rgba(221,68,170,0.1);
+    border: 1px solid #d4a; border-radius: 3px; padding: 1px 6px;
+    margin-left: 6px; vertical-align: middle;
+  }
+  #stale-badge.visible { display: inline; }
+  .panels-dim .panel { opacity: 0.5; transition: opacity 0.3s; }
+
+  /* Stale dancer styling */
+  .dancer-section.stale .bar-fill { opacity: 0.4; }
+  .dancer-stale-label { color: #666; font-size: 10px; margin-left: 6px; }
+
   /* Reading editor enhancements */
   .reading-title-row {
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
@@ -484,6 +497,7 @@
   <div class="status-item">
     <span class="dot" id="ws-dot"></span>
     <span id="ws-status">disconnected</span>
+    <span id="stale-badge">stale</span>
   </div>
   <div class="status-item">
     <span>scene:</span>
@@ -553,9 +567,13 @@
 
 <script>
 // ─── Config ──────────────────────────────────────────────────────────────────
-const RECONNECT_DELAY = 2000;
 const MAX_ACT_LOG = 50;
 const DEBOUNCE_MS = 100;
+
+// ─── Reconnect backoff ──────────────────────────────────────────────────────
+let reconnectDelay = 1000;
+const MAX_RECONNECT_DELAY = 15000;
+let reconnectAttempt = 0;
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let ws = null;
@@ -572,6 +590,9 @@ let editorDirty = false;
 let debounceTimer = null;
 let manifest = null;
 let savedScene = null;
+let lastStateTime = 0;
+let lastMessageTime = 0;
+let heartbeatInterval = null;
 
 // ─── WebSocket ───────────────────────────────────────────────────────────────
 function connect() {
@@ -584,16 +605,36 @@ function connect() {
   ws.onopen = () => {
     setConnectionStatus("connected");
     clearTimeout(reconnectTimer);
+    reconnectDelay = 1000;
+    reconnectAttempt = 0;
+    lastMessageTime = Date.now();
     send({ type: "getState" });
     send({ type: "getScene" });
     send({ type: "getManifest" });
+
+    // Client-side heartbeat
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(() => {
+      const now = Date.now();
+      if (now - lastMessageTime > 15000) {
+        // No message for 15s — force reconnect
+        ws.close();
+      } else if (now - lastMessageTime > 10000) {
+        send({ type: "ping" });
+      }
+    }, 10000);
   };
 
   ws.onmessage = (event) => {
+    lastMessageTime = Date.now();
     try {
       const msg = JSON.parse(event.data);
       switch (msg.type) {
         case "state":
+          lastStateTime = Date.now();
+          // Clear stale indicator
+          document.getElementById("stale-badge").classList.remove("visible");
+          document.querySelector(".panels").classList.remove("panels-dim");
           latestState = msg;
           frameCount++;
           renderDirty = true;
@@ -622,10 +663,15 @@ function connect() {
 
   ws.onclose = () => {
     setConnectionStatus("disconnected");
-    reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
+    clearInterval(heartbeatInterval);
+    document.getElementById("stale-badge").classList.remove("visible");
+    document.querySelector(".panels").classList.remove("panels-dim");
+    reconnectAttempt++;
+    reconnectTimer = setTimeout(connect, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
   };
 
-  ws.onerror = () => {};
+  ws.onerror = (e) => { console.error("[console] WebSocket error:", e); };
 }
 
 function reconnect() {
@@ -641,8 +687,11 @@ function send(obj) {
 
 function setConnectionStatus(status) {
   document.getElementById("ws-dot").className = "dot " + status;
-  document.getElementById("ws-status").textContent = status;
-  document.getElementById("sys-conn").textContent = status;
+  const label = status === "reconnecting" && reconnectAttempt > 0
+    ? `reconnecting (attempt ${reconnectAttempt})…`
+    : status;
+  document.getElementById("ws-status").textContent = label;
+  document.getElementById("sys-conn").textContent = label;
 }
 
 // ─── Act log ─────────────────────────────────────────────────────────────────
@@ -665,7 +714,17 @@ function getActRate() {
 // ─── Render loop ─────────────────────────────────────────────────────────────
 function renderLoop() {
   requestAnimationFrame(renderLoop);
-  if (!renderDirty) return;
+  // Always check stale even if no new data; skip heavy render if not dirty
+  const checkStale = lastStateTime > 0 && ws && ws.readyState === WebSocket.OPEN;
+  if (!renderDirty && !checkStale) return;
+  if (!renderDirty) {
+    // Only run stale check, skip full render
+    if (Date.now() - lastStateTime > 3000) {
+      document.getElementById("stale-badge").classList.add("visible");
+      document.querySelector(".panels").classList.add("panels-dim");
+    }
+    return;
+  }
   renderDirty = false;
 
   // FPS calculation
@@ -678,6 +737,12 @@ function renderLoop() {
 
   document.getElementById("frame-rate").textContent = fps;
   document.getElementById("sys-frames").textContent = frameCount;
+
+  // Stale state detection
+  if (lastStateTime > 0 && ws && ws.readyState === WebSocket.OPEN && Date.now() - lastStateTime > 3000) {
+    document.getElementById("stale-badge").classList.add("visible");
+    document.querySelector(".panels").classList.add("panels-dim");
+  }
 
   if (latestState) {
     renderState(latestState);
@@ -710,7 +775,9 @@ function renderState(s) {
     let html = "";
     for (const id of dancerIds) {
       const d = dancers[id];
-      html += `<div class="dancer-header">${id}</div>`;
+      const isStale = d.stale === true;
+      html += `<div class="dancer-section${isStale ? ' stale' : ''}">`;
+      html += `<div class="dancer-header">${id}${isStale ? '<span class="dancer-stale-label">(stale)</span>' : ''}</div>`;
       const quals = d.qualities || {};
       for (const [q, v] of Object.entries(quals)) {
         const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
@@ -721,6 +788,7 @@ function renderState(s) {
           <span class="bar-value">${v.toFixed(2)}</span>
         </div>`;
       }
+      html += `</div>`; // close dancer-section
     }
     dancersEl.innerHTML = html;
   }

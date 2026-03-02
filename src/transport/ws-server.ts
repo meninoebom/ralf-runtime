@@ -10,6 +10,8 @@ import type { RuntimeState, ActMessage, SceneConfig, TranslatorState } from "../
 export class WsServer {
   private wss: WebSocketServer | null = null;
   private clients = new Set<WebSocket>();
+  private lastPong = new Map<WebSocket, number>();
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private onLoadScene: ((scene: SceneConfig) => void) | null = null;
   private onGetState: (() => RuntimeState) | null = null;
   private onTranslatorState: ((update: Partial<TranslatorState>) => void) | null = null;
@@ -58,6 +60,11 @@ export class WsServer {
 
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
+      this.lastPong.set(ws, Date.now());
+
+      ws.on("pong", () => {
+        this.lastPong.set(ws, Date.now());
+      });
 
       ws.on("message", (data) => {
         try {
@@ -70,8 +77,24 @@ export class WsServer {
 
       ws.on("close", () => {
         this.clients.delete(ws);
+        this.lastPong.delete(ws);
       });
     });
+
+    // Heartbeat: ping clients every 10s, terminate if no pong in 15s
+    this.heartbeatInterval = setInterval(() => {
+      const now = Date.now();
+      for (const client of this.clients) {
+        const last = this.lastPong.get(client) ?? 0;
+        if (now - last > 15_000) {
+          client.terminate();
+          this.clients.delete(client);
+          this.lastPong.delete(client);
+          continue;
+        }
+        client.ping();
+      }
+    }, 10_000);
   }
 
   broadcastState(state: RuntimeState) {
@@ -84,6 +107,10 @@ export class WsServer {
   }
 
   stop() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
     this.wss?.close();
   }
 

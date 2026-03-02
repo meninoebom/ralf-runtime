@@ -127,7 +127,7 @@ export class Runtime {
   /** Advance one frame. Public so tests can drive the loop deterministically. */
   tick() {
     this._tick++;
-
+    try {
     const settings = this.scene.settings;
     const stalenessFrames = settings?.staleness_frames ?? 90;
     const hysteresisBand = settings?.hysteresis_band ?? 0.05;
@@ -254,12 +254,25 @@ export class Runtime {
       }
     }
 
+    // Mark stale dancers
+    for (const [dancerId, dancer] of this.dancers) {
+      const meta = this.dancerMeta.get(dancerId);
+      if (!meta) continue;
+      const updatedQualities = Object.entries(meta.lastUpdateFrame).filter(([, frame]) => frame > 0);
+      dancer.stale = updatedQualities.length > 0 &&
+        updatedQualities.every(([, frame]) => this._tick - frame > stalenessFrames);
+    }
+
     this.onState?.({
       dancers: this.dancers,
       readings: allReadings,
       tick: this._tick,
       translatorState: { ...this._translatorState },
     });
+    } catch (err) {
+      console.error("[runtime] tick error:", err);
+      return;
+    }
   }
 
   private resolveIntents(
@@ -361,6 +374,18 @@ export class Runtime {
   }
 
   getState(): RuntimeState {
+    const settings = this.scene.settings;
+    const stalenessFrames = settings?.staleness_frames ?? 90;
+
+    // Compute stale flags for on-demand state requests
+    for (const [dancerId, dancer] of this.dancers) {
+      const meta = this.dancerMeta.get(dancerId);
+      if (!meta) continue;
+      const updatedQualities = Object.entries(meta.lastUpdateFrame).filter(([, frame]) => frame > 0);
+      dancer.stale = updatedQualities.length > 0 &&
+        updatedQualities.every(([, frame]) => this._tick - frame > stalenessFrames);
+    }
+
     return {
       dancers: new Map(this.dancers),
       readings: this.scene.readings.flatMap((r) =>
