@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateScene } from "../src/scenes/validator.js";
-import type { SceneConfig } from "../src/types.js";
+import type { SceneConfig, TranslatorManifest } from "../src/types.js";
 
 function validScene(): SceneConfig {
   return {
@@ -79,5 +79,81 @@ describe("Scene validator", () => {
     const scene = validScene();
     delete scene.version;
     expect(validateScene(scene)).toEqual([]);
+  });
+});
+
+const testManifest: TranslatorManifest = {
+  name: "test",
+  description: "Test translator",
+  actions: [
+    { name: "trigger/boom", type: "trigger", description: "Boom" },
+    {
+      name: "trigger/unmute_track",
+      type: "trigger",
+      description: "Unmute",
+      args: { track: { type: "enum", values: ["pad", "bass", "perc", "texture"], required: true } },
+    },
+    { name: "set/filter_cutoff", type: "set", description: "Filter" },
+  ],
+};
+
+describe("Manifest-aware validation", () => {
+  it("passes when all actions exist in manifest", () => {
+    const scene = validScene();
+    scene.intents = { add_energy: [{ action: "trigger/boom", weight: 1 }] };
+    expect(validateScene(scene, testManifest)).toEqual([]);
+  });
+
+  it("catches unknown action name", () => {
+    const scene = validScene();
+    scene.intents = { add_energy: [{ action: "trigger/nope", weight: 1 }] };
+    const errors = validateScene(scene, testManifest);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("trigger/nope");
+    expect(errors[0].message).toContain("not found in translator manifest");
+  });
+
+  it("catches missing required arg", () => {
+    const scene = validScene();
+    scene.intents = { add_energy: [{ action: "trigger/unmute_track", weight: 1 }] };
+    const errors = validateScene(scene, testManifest);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("Required arg");
+    expect(errors[0].message).toContain("track");
+  });
+
+  it("catches invalid enum value", () => {
+    const scene = validScene();
+    scene.intents = {
+      add_energy: [{ action: "trigger/unmute_track", args: { track: "drums" }, weight: 1 }],
+    };
+    const errors = validateScene(scene, testManifest);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("drums");
+    expect(errors[0].message).toContain("pad, bass, perc, texture");
+  });
+
+  it("accepts valid enum value", () => {
+    const scene = validScene();
+    scene.intents = {
+      add_energy: [{ action: "trigger/unmute_track", args: { track: "perc" }, weight: 1 }],
+    };
+    expect(validateScene(scene, testManifest)).toEqual([]);
+  });
+
+  it("skips manifest validation when no manifest provided", () => {
+    const scene = validScene();
+    scene.intents = { add_energy: [{ action: "trigger/anything", weight: 1 }] };
+    expect(validateScene(scene)).toEqual([]);
+  });
+
+  it("validates IntentPoolConfig format", () => {
+    const scene = validScene();
+    scene.intents = {
+      add_energy: { pool: [{ action: "trigger/nope", weight: 1 }], deterministic: true },
+    };
+    const errors = validateScene(scene, testManifest);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("trigger/nope");
   });
 });

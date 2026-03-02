@@ -1,4 +1,4 @@
-import type { SceneConfig, IntentPoolConfig } from "../types.js";
+import type { SceneConfig, IntentPoolConfig, TranslatorManifest, ManifestAction } from "../types.js";
 
 export interface ValidationError {
   path: string;
@@ -21,7 +21,7 @@ function getPool(entry: unknown): { pool: unknown[]; deterministic?: boolean } |
   return null;
 }
 
-export function validateScene(scene: SceneConfig): ValidationError[] {
+export function validateScene(scene: SceneConfig, manifest?: TranslatorManifest): ValidationError[] {
   const errors: ValidationError[] = [];
 
   // Check version
@@ -86,6 +86,47 @@ export function validateScene(scene: SceneConfig): ValidationError[] {
             path: `${prefix}.on_exit[${j}]`,
             message: `Intent "${intentName}" is not defined in scene.intents`,
           });
+        }
+      }
+    }
+  }
+
+  // Validate intent actions against manifest
+  if (manifest) {
+    const actionMap = new Map<string, ManifestAction>();
+    for (const action of manifest.actions) {
+      actionMap.set(action.name, action);
+    }
+
+    for (const [intentName, entry] of Object.entries(scene.intents)) {
+      const poolData = getPool(entry);
+      if (!poolData) continue;
+
+      for (let i = 0; i < poolData.pool.length; i++) {
+        const option = poolData.pool[i] as { action: string; args?: Record<string, string | number> };
+        const prefix = `intents.${intentName}[${i}]`;
+        const manifestAction = actionMap.get(option.action);
+
+        if (!manifestAction) {
+          errors.push({ path: prefix, message: `Action "${option.action}" not found in translator manifest` });
+          continue;
+        }
+
+        if (manifestAction.args) {
+          for (const [argName, schema] of Object.entries(manifestAction.args)) {
+            const value = option.args?.[argName];
+
+            if (schema.required && value === undefined) {
+              errors.push({ path: `${prefix}.args.${argName}`, message: `Required arg "${argName}" missing for action "${option.action}"` });
+              continue;
+            }
+
+            if (value !== undefined && schema.type === "enum" && schema.values) {
+              if (!schema.values.includes(String(value))) {
+                errors.push({ path: `${prefix}.args.${argName}`, message: `Invalid value "${value}" for arg "${argName}" — expected one of: ${schema.values.join(", ")}` });
+              }
+            }
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ export class WsServer {
   private onUpdateScene: ((patch: Partial<SceneConfig>) => void) | null = null;
   private onSaveScene: (() => Promise<void>) | null = null;
   private onGetScene: (() => SceneConfig) | null = null;
+  private onGetManifest: (() => unknown | null) | null = null;
 
   constructor(private port: number) {}
 
@@ -41,6 +42,10 @@ export class WsServer {
 
   setGetSceneHandler(handler: () => SceneConfig) {
     this.onGetScene = handler;
+  }
+
+  setGetManifestHandler(handler: () => unknown | null) {
+    this.onGetManifest = handler;
   }
 
   start() {
@@ -133,6 +138,13 @@ export class WsServer {
         const scene = this.onGetScene?.();
         if (scene) {
           ws.send(JSON.stringify({ type: "scene", scene }));
+        }
+        break;
+      }
+      case "getManifest": {
+        const manifest = this.onGetManifest?.();
+        if (manifest) {
+          ws.send(JSON.stringify({ type: "manifest", manifest }));
         }
         break;
       }

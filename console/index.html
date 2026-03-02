@@ -151,6 +151,110 @@
   .intent-mode { font-size: 10px; color: #666; margin-left: 8px; }
 
   .no-data { font-size: 11px; color: #444; font-style: italic; }
+
+  /* Reading editor enhancements */
+  .reading-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .reading-header .editor-group-title { margin-bottom: 0; flex: 0 0 auto; }
+  .reading-label {
+    font-family: inherit; font-size: 11px; background: #0a0a0a;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 3px 6px; flex: 1; max-width: 180px;
+  }
+  .reading-label::placeholder { color: #333; }
+  .reading-label:focus { outline: none; border-color: #4a4; color: #ccc; }
+  .remove-btn {
+    font-family: inherit; font-size: 11px; background: none;
+    border: 1px solid #333; border-radius: 3px; color: #666;
+    padding: 2px 6px; cursor: pointer; line-height: 1;
+  }
+  .remove-btn:hover { border-color: #a44; color: #a44; }
+  .add-row {
+    display: flex; gap: 8px; align-items: center; margin-top: 6px;
+  }
+  .add-row select {
+    font-family: inherit; font-size: 11px; background: #0a0a0a;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 3px 6px; cursor: pointer;
+  }
+  .add-row select:focus { outline: none; border-color: #4a4; }
+  .add-btn {
+    font-family: inherit; font-size: 11px; background: #1a2a1a;
+    border: 1px solid #2a3a2a; border-radius: 3px; color: #5c5;
+    padding: 4px 10px; cursor: pointer;
+  }
+  .add-btn:hover { background: #253025; border-color: #3a4a3a; }
+  .quality-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px; font-size: 11px;
+  }
+  .quality-row label { color: #888; min-width: 120px; }
+  .quality-row input[type="range"] {
+    flex: 1; max-width: 200px; accent-color: #4a4;
+    height: 4px; -webkit-appearance: none; appearance: none;
+    background: #222; border-radius: 2px; outline: none;
+  }
+  .quality-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: #4a4; cursor: pointer;
+  }
+  .gate-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 4px; font-size: 11px; margin-left: 16px;
+  }
+  .gate-row label { color: #666; min-width: 40px; }
+  .gate-row input[type="number"] {
+    font-family: inherit; font-size: 11px; background: #0a0a0a;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 2px 4px; width: 60px;
+  }
+  .gate-row input[type="number"]:focus { outline: none; border-color: #4a4; color: #ccc; }
+  .empty-hint { font-size: 10px; color: #444; font-style: italic; margin: 8px 0; }
+
+  /* Intent wiring on readings */
+  .intent-wire-section {
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #1a1a1a;
+  }
+  .intent-wire-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .intent-wire {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 4px; font-size: 11px; padding: 3px 0;
+  }
+  .intent-wire .intent-name { color: #7a7; min-width: 80px; }
+  .intent-wire select {
+    font-family: inherit; font-size: 10px; background: #0a0a0a;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 2px 4px; cursor: pointer;
+  }
+  .intent-wire input[type="number"] {
+    font-family: inherit; font-size: 10px; background: #0a0a0a;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 2px 4px; width: 50px;
+  }
+  .intent-wire label { color: #666; font-size: 10px; }
+
+  /* Intent editor — action picker */
+  .action-card {
+    background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 4px;
+    padding: 8px; margin-bottom: 6px; margin-left: 12px;
+  }
+  .action-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11px;
+  }
+  .action-header .action-name { color: #7a7; font-weight: 600; }
+  .action-header .action-desc { color: #555; font-size: 10px; flex: 1; }
+  .action-header .action-pct { color: #888; font-size: 10px; min-width: 32px; text-align: right; }
+  .action-args { margin-left: 8px; margin-top: 4px; }
+  .action-args .arg-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 10px;
+  }
+  .action-args .arg-row label { color: #666; min-width: 60px; }
+  .action-args .arg-row select, .action-args .arg-row input {
+    font-family: inherit; font-size: 10px; background: #111;
+    color: #888; border: 1px solid #222; border-radius: 3px;
+    padding: 2px 4px;
+  }
 </style>
 </head>
 <body>
@@ -251,6 +355,7 @@ let actLogEntries = [];
 let renderDirty = true;
 let editorDirty = false;
 let debounceTimer = null;
+let manifest = null;
 
 // ─── WebSocket ───────────────────────────────────────────────────────────────
 function connect() {
@@ -265,6 +370,7 @@ function connect() {
     clearTimeout(reconnectTimer);
     send({ type: "getState" });
     send({ type: "getScene" });
+    send({ type: "getManifest" });
   };
 
   ws.onmessage = (event) => {
@@ -283,6 +389,10 @@ function connect() {
         case "scene":
           scene = msg.scene;
           rebuildEditor();
+          break;
+        case "manifest":
+          manifest = msg.manifest;
+          if (scene) rebuildIntentEditor();
           break;
         case "ping":
           send({ type: "pong", name: "console" });
@@ -352,7 +462,10 @@ function renderLoop() {
   document.getElementById("frame-rate").textContent = fps;
   document.getElementById("sys-frames").textContent = frameCount;
 
-  if (latestState) renderState(latestState);
+  if (latestState) {
+    renderState(latestState);
+    updateEditorLive(latestState);
+  }
   renderActLog();
   document.getElementById("act-rate").textContent = getActRate() + " acts/s";
 }
@@ -414,6 +527,33 @@ function renderState(s) {
   }
 }
 
+function updateEditorLive(s) {
+  // Update live quality values next to mix sliders
+  // Find first real dancer for quality values (skip _crowd)
+  const dancers = s.dancers || {};
+  const dancerIds = Object.keys(dancers).filter(id => !id.startsWith("_"));
+  const qualities = dancerIds.length > 0 ? (dancers[dancerIds[0]].qualities || {}) : {};
+  // Also include _crowd qualities
+  const crowdQualities = dancers._crowd ? (dancers._crowd.qualities || {}) : {};
+  const allQualities = { ...qualities, ...crowdQualities };
+
+  document.querySelectorAll("[data-live-quality]").forEach(el => {
+    const q = el.dataset.liveQuality;
+    const v = allQualities[q];
+    el.textContent = v !== undefined ? v.toFixed(2) : "—";
+  });
+
+  // Update reading active badges
+  const readings = s.readings || [];
+  const readingMap = {};
+  for (const r of readings) readingMap[r.id] = r.active;
+  document.querySelectorAll("[data-live-reading]").forEach(el => {
+    const id = el.dataset.liveReading;
+    const active = readingMap[id];
+    el.className = "active-badge " + (active ? "on" : "off");
+  });
+}
+
 function renderActLog() {
   const logEl = document.getElementById("act-log");
   if (actLogEntries.length === 0) {
@@ -441,67 +581,311 @@ function rebuildEditor() {
   rebuildIntentEditor();
 }
 
+const VALID_QUALITIES = [
+  "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
+  "contraction", "symmetry", "coherence", "verticality", "heading",
+  "stillness", "periodicity", "groundedness", "synchrony", "contrast",
+  "aggregate_energy"
+];
+
+let readingCounter = 0;
+
 function rebuildReadingEditor() {
   const el = document.getElementById("reading-editor");
   const readings = scene.readings || [];
-  if (readings.length === 0) {
-    el.innerHTML = '<div class="editor-group"><span class="no-data">no readings in scene</span></div>';
-    return;
+
+  // Track highest reading-N id for counter
+  for (const r of readings) {
+    const m = (r.id || "").match(/^reading-(\d+)$/);
+    if (m) readingCounter = Math.max(readingCounter, parseInt(m[1]));
   }
 
   let html = "";
   for (let ri = 0; ri < readings.length; ri++) {
     const r = readings[ri];
-    html += `<div class="editor-group">`;
-    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
+    html += `<div class="editor-group" data-reading-index="${ri}">`;
 
-    // Mix weights
+    // Header: id + label + remove
+    html += `<div class="reading-header">`;
+    html += `<span class="active-badge off" data-live-reading="${r.id || ri}"></span>`;
+    html += `<div class="editor-group-title">Reading: ${r.id || ri}</div>`;
+    html += `<input type="text" class="reading-label" placeholder="moment name…" value="${r.label || ""}" data-ri="${ri}" data-type="reading-label">`;
+    html += `<button class="remove-btn" data-ri="${ri}" data-action="remove-reading" title="Remove reading">×</button>`;
+    html += `</div>`;
+
+    // Mix weights with remove per quality
     const mix = r.mix || {};
-    for (const [q, w] of Object.entries(mix)) {
+    const mixKeys = Object.keys(mix);
+    if (mixKeys.length === 0) {
+      html += `<div class="empty-hint">Add a quality to this reading</div>`;
+    }
+    for (const q of mixKeys) {
+      const w = mix[q];
       const val = typeof w === "number" ? w : (w && w.weight !== undefined ? w.weight : 0);
-      html += `<div class="slider-row">
+      html += `<div class="quality-row">
         <label>${q}</label>
         <input type="range" min="0" max="1" step="0.01" value="${val}"
           data-type="mix" data-ri="${ri}" data-quality="${q}">
         <span class="slider-val">${val.toFixed(2)}</span>
+        <span class="bar-value" data-live-quality="${q}">—</span>
+        <button class="remove-btn" data-ri="${ri}" data-quality="${q}" data-action="remove-quality" title="Remove quality">×</button>
+      </div>`;
+
+      // Gate config for this quality
+      const gc = r.gate && r.gate[q];
+      html += `<div class="gate-row">
+        <label>above</label>
+        <input type="number" min="0" max="1" step="0.01" value="${gc && gc.above !== undefined ? gc.above : ""}"
+          placeholder="—" data-type="gate-above" data-ri="${ri}" data-gq="${q}">
+        <label>below</label>
+        <input type="number" min="0" max="1" step="0.01" value="${gc && gc.below !== undefined ? gc.below : ""}"
+          placeholder="—" data-type="gate-below" data-ri="${ri}" data-gq="${q}">
       </div>`;
     }
 
-    // Gates — gate is Record<string, {above?, below?}>
-    if (r.gate) {
-      for (const [gq, gc] of Object.entries(r.gate)) {
-        if (gc.above !== undefined) {
-          html += `<div class="slider-row">
-            <label>gate ${gq} above</label>
-            <input type="range" min="0" max="1" step="0.01" value="${gc.above}"
-              data-type="gate-above" data-ri="${ri}" data-gq="${gq}">
-            <span class="slider-val">${gc.above.toFixed(2)}</span>
-          </div>`;
-        }
-        if (gc.below !== undefined) {
-          html += `<div class="slider-row">
-            <label>gate ${gq} below</label>
-            <input type="range" min="0" max="1" step="0.01" value="${gc.below}"
-              data-type="gate-below" data-ri="${ri}" data-gq="${gq}">
-            <span class="slider-val">${gc.below.toFixed(2)}</span>
-          </div>`;
-        }
-      }
+    // Quality picker dropdown
+    const usedQualities = new Set(mixKeys);
+    const available = VALID_QUALITIES.filter(q => !usedQualities.has(q));
+    if (available.length > 0) {
+      html += `<div class="add-row">
+        <select data-ri="${ri}" data-action="quality-picker">
+          <option value="">+ add quality</option>
+          ${available.map(q => `<option value="${q}">${q}</option>`).join("")}
+        </select>
+      </div>`;
     }
 
-    // Show connected intents
-    if (r.intents && r.intents.length > 0) {
-      html += `<div style="font-size:10px;color:#555;margin-top:6px;">intents: ${r.intents.map(i => typeof i === 'string' ? i : i.intent).join(', ')}</div>`;
+    // Intent wiring section
+    html += `<div class="intent-wire-section">`;
+    html += `<div class="intent-wire-title">Intents</div>`;
+    const intents = r.intents || [];
+    if (intents.length === 0) {
+      html += `<div class="empty-hint">No intents wired</div>`;
     }
+    for (let ii = 0; ii < intents.length; ii++) {
+      const intent = intents[ii];
+      const name = typeof intent === "string" ? intent : intent.intent;
+      const mode = (typeof intent === "object" && intent.mode === "continuous") ? "continuous" : "edge";
+      const above = (typeof intent === "object" && intent.above !== undefined) ? intent.above : "";
+      const below = (typeof intent === "object" && intent.below !== undefined) ? intent.below : "";
+      html += `<div class="intent-wire">
+        <span class="intent-name">${name}</span>
+        <select data-ri="${ri}" data-ii="${ii}" data-action="intent-mode">
+          <option value="edge" ${mode === "edge" ? "selected" : ""}>edge</option>
+          <option value="continuous" ${mode === "continuous" ? "selected" : ""}>continuous</option>
+        </select>
+        <label>above</label>
+        <input type="number" min="0" max="1" step="0.01" value="${above}" placeholder="—"
+          data-ri="${ri}" data-ii="${ii}" data-action="intent-above">
+        <label>below</label>
+        <input type="number" min="0" max="1" step="0.01" value="${below}" placeholder="—"
+          data-ri="${ri}" data-ii="${ii}" data-action="intent-below">
+        <button class="remove-btn" data-ri="${ri}" data-ii="${ii}" data-action="remove-intent" title="Remove intent">×</button>
+      </div>`;
+    }
+    // Add intent dropdown
+    const existingIntents = Object.keys(scene.intents || {});
+    html += `<div class="add-row">
+      <select data-ri="${ri}" data-action="add-intent">
+        <option value="">+ add intent</option>
+        ${existingIntents.map(n => `<option value="${n}">${n}</option>`).join("")}
+        <option value="__new__">New Intent…</option>
+      </select>
+    </div>`;
+    html += `</div>`;
 
     html += `</div>`;
   }
-  el.innerHTML = html;
 
-  // Attach listeners
+  // Add Reading button
+  html += `<div style="margin-top:8px;">
+    <button class="add-btn" data-action="add-reading">+ Add Reading</button>
+  </div>`;
+
+  el.innerHTML = html;
+  attachReadingListeners(el);
+}
+
+function attachReadingListeners(el) {
+  // Range sliders
   el.querySelectorAll("input[type=range]").forEach(input => {
     input.addEventListener("input", onReadingSlider);
   });
+  // Label inputs
+  el.querySelectorAll("input[data-type='reading-label']").forEach(input => {
+    input.addEventListener("input", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      scene.readings[ri].label = e.target.value || undefined;
+      debounceSendScene("readings");
+    });
+  });
+  // Gate number inputs
+  el.querySelectorAll("input[data-type='gate-above'], input[data-type='gate-below']").forEach(input => {
+    input.addEventListener("input", onGateInput);
+  });
+  // Quality picker selects
+  el.querySelectorAll("select[data-action='quality-picker']").forEach(select => {
+    select.addEventListener("change", (e) => {
+      const q = e.target.value;
+      if (!q) return;
+      const ri = parseInt(e.target.dataset.ri);
+      const r = scene.readings[ri];
+      if (!r.mix) r.mix = {};
+      r.mix[q] = 1.0;
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+    });
+  });
+  // Remove quality buttons
+  el.querySelectorAll("[data-action='remove-quality']").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      const q = e.target.dataset.quality;
+      delete scene.readings[ri].mix[q];
+      if (scene.readings[ri].gate) delete scene.readings[ri].gate[q];
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+    });
+  });
+  // Remove reading buttons
+  el.querySelectorAll("[data-action='remove-reading']").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      scene.readings.splice(ri, 1);
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+    });
+  });
+  // Intent mode toggles
+  el.querySelectorAll("select[data-action='intent-mode']").forEach(select => {
+    select.addEventListener("change", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      const ii = parseInt(e.target.dataset.ii);
+      updateIntentWire(ri, ii, { mode: e.target.value });
+    });
+  });
+  // Intent threshold inputs
+  el.querySelectorAll("input[data-action='intent-above'], input[data-action='intent-below']").forEach(input => {
+    input.addEventListener("input", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      const ii = parseInt(e.target.dataset.ii);
+      const field = e.target.dataset.action === "intent-above" ? "above" : "below";
+      const val = e.target.value.trim();
+      updateIntentWire(ri, ii, { [field]: val === "" ? undefined : parseFloat(val) });
+    });
+  });
+  // Remove intent buttons
+  el.querySelectorAll("[data-action='remove-intent']").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const ri = parseInt(e.target.dataset.ri);
+      const ii = parseInt(e.target.dataset.ii);
+      scene.readings[ri].intents.splice(ii, 1);
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+    });
+  });
+  // Add intent dropdowns
+  el.querySelectorAll("select[data-action='add-intent']").forEach(select => {
+    select.addEventListener("change", (e) => {
+      let name = e.target.value;
+      if (!name) return;
+      const ri = parseInt(e.target.dataset.ri);
+      if (name === "__new__") {
+        name = prompt("Intent name:");
+        if (!name || !name.trim()) { e.target.value = ""; return; }
+        name = name.trim();
+        if (!scene.intents) scene.intents = {};
+        if (!scene.intents[name]) {
+          scene.intents[name] = { pool: [], deterministic: false };
+        }
+      }
+      if (!scene.readings[ri].intents) scene.readings[ri].intents = [];
+      scene.readings[ri].intents.push(name);
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+      rebuildIntentEditor();
+    });
+  });
+  // Add reading button
+  const addBtn = el.querySelector("[data-action='add-reading']");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      readingCounter++;
+      if (!scene.readings) scene.readings = [];
+      scene.readings.push({
+        id: `reading-${readingCounter}`,
+        mix: {},
+        gate: {},
+        intents: []
+      });
+      debounceSendScene("readings");
+      rebuildReadingEditor();
+    });
+  }
+}
+
+function onGateInput(e) {
+  const input = e.target;
+  const ri = parseInt(input.dataset.ri);
+  const gq = input.dataset.gq;
+  const type = input.dataset.type;
+  const r = scene.readings[ri];
+  if (!r.gate) r.gate = {};
+  if (!r.gate[gq]) r.gate[gq] = {};
+
+  const val = input.value.trim();
+  if (val === "") {
+    delete r.gate[gq][type === "gate-above" ? "above" : "below"];
+    if (Object.keys(r.gate[gq]).length === 0) delete r.gate[gq];
+  } else {
+    r.gate[gq][type === "gate-above" ? "above" : "below"] = parseFloat(val);
+  }
+  debounceSendScene("readings");
+}
+
+function updateIntentWire(ri, ii, changes) {
+  const r = scene.readings[ri];
+  let intent = r.intents[ii];
+  const name = typeof intent === "string" ? intent : intent.intent;
+
+  // Normalize to object form
+  if (typeof intent === "string") {
+    intent = { intent: name };
+  } else {
+    intent = { ...intent };
+  }
+
+  if (changes.mode !== undefined) {
+    if (changes.mode === "continuous") intent.mode = "continuous";
+    else delete intent.mode;
+  }
+  if ("above" in changes) {
+    if (changes.above === undefined) delete intent.above;
+    else intent.above = changes.above;
+  }
+  if ("below" in changes) {
+    if (changes.below === undefined) delete intent.below;
+    else intent.below = changes.below;
+  }
+
+  // Simplify back to string if just edge mode with no thresholds
+  const keys = Object.keys(intent).filter(k => k !== "intent");
+  if (keys.length === 0) {
+    r.intents[ii] = name;
+  } else {
+    r.intents[ii] = intent;
+  }
+  debounceSendScene("readings");
+}
+
+function getManifestAction(actionName) {
+  if (!manifest || !manifest.actions) return null;
+  return manifest.actions.find(a => a.name === actionName) || null;
+}
+
+function getManifestActionNames() {
+  if (!manifest || !manifest.actions) return [];
+  return manifest.actions.map(a => a.name);
 }
 
 function rebuildIntentEditor() {
@@ -516,7 +900,6 @@ function rebuildIntentEditor() {
   let html = "";
   for (const name of intentNames) {
     const entry = intents[name];
-    // Intents can be IntentOption[] or IntentPoolConfig { pool, deterministic? }
     const isPoolConfig = !Array.isArray(entry);
     const actions = isPoolConfig ? (entry.pool || []) : entry;
     const deterministic = isPoolConfig ? (entry.deterministic || false) : false;
@@ -525,6 +908,9 @@ function rebuildIntentEditor() {
     if (Array.isArray(entry)) {
       scene.intents[name] = { pool: entry, deterministic: false };
     }
+
+    const totalWeight = actions.reduce((s, a) => s + (a.weight || 1), 0);
+    const showWeights = actions.length > 1;
 
     html += `<div class="editor-group">`;
     html += `<div class="editor-group-title">Intent: ${name}</div>`;
@@ -537,22 +923,122 @@ function rebuildIntentEditor() {
       const a = actions[ai];
       const actionName = a.action || "?";
       const weight = a.weight || 1;
-      html += `<div class="slider-row intent-actions">
-        <label>${actionName}</label>
-        <input type="range" min="1" max="10" step="1" value="${weight}"
-          data-type="intent-weight" data-intent="${name}" data-ai="${ai}">
-        <span class="slider-val">${weight}</span>
+      const pct = totalWeight > 0 ? Math.round(weight / totalWeight * 100) : 0;
+      const mAction = getManifestAction(actionName);
+      const desc = mAction ? mAction.description : "";
+
+      html += `<div class="action-card">`;
+      html += `<div class="action-header">
+        <span class="action-name">${actionName}</span>
+        <span class="action-desc">${desc}</span>
+        ${showWeights ? `<span class="action-pct">${pct}%</span>` : ""}
+        <button class="remove-btn" data-intent="${name}" data-ai="${ai}" data-action="remove-action" title="Remove action">×</button>
+      </div>`;
+
+      // Weight slider (only when multiple actions)
+      if (showWeights) {
+        html += `<div class="slider-row">
+          <label>weight</label>
+          <input type="range" min="1" max="10" step="1" value="${weight}"
+            data-type="intent-weight" data-intent="${name}" data-ai="${ai}">
+          <span class="slider-val">${weight}</span>
+        </div>`;
+      }
+
+      // Args from manifest schema
+      if (mAction && mAction.args) {
+        html += `<div class="action-args">`;
+        for (const [argName, argSchema] of Object.entries(mAction.args)) {
+          const currentVal = (a.args && a.args[argName]) || "";
+          html += `<div class="arg-row">`;
+          html += `<label>${argName}</label>`;
+          if (argSchema.type === "enum") {
+            html += `<select data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">
+              <option value="">—</option>
+              ${argSchema.values.map(v => `<option value="${v}" ${currentVal === v ? "selected" : ""}>${v}</option>`).join("")}
+            </select>`;
+          } else if (argSchema.type === "number") {
+            html += `<input type="number" value="${currentVal}" placeholder="—"
+              data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
+          } else {
+            html += `<input type="text" value="${currentVal}" placeholder="—"
+              data-intent="${name}" data-ai="${ai}" data-arg="${argName}" data-action="action-arg">`;
+          }
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `</div>`; // action-card
+    }
+
+    // Add Action dropdown (from manifest)
+    const availableActions = getManifestActionNames();
+    if (availableActions.length > 0) {
+      html += `<div class="add-row">
+        <select data-intent="${name}" data-action="add-action">
+          <option value="">+ add action</option>
+          ${availableActions.map(a => `<option value="${a}">${a}</option>`).join("")}
+        </select>
       </div>`;
     }
+
     html += `</div>`;
   }
   el.innerHTML = html;
 
-  el.querySelectorAll("input[type=range]").forEach(input => {
+  // Attach listeners
+  el.querySelectorAll("input[type=range][data-type='intent-weight']").forEach(input => {
     input.addEventListener("input", onIntentSlider);
   });
-  el.querySelectorAll("input[type=checkbox]").forEach(input => {
+  el.querySelectorAll("input[type=checkbox][data-type='intent-det']").forEach(input => {
     input.addEventListener("change", onIntentCheckbox);
+  });
+  el.querySelectorAll("[data-action='remove-action']").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const name = e.target.dataset.intent;
+      const ai = parseInt(e.target.dataset.ai);
+      scene.intents[name].pool.splice(ai, 1);
+      debounceSendScene("intents");
+      rebuildIntentEditor();
+    });
+  });
+  el.querySelectorAll("select[data-action='add-action']").forEach(select => {
+    select.addEventListener("change", (e) => {
+      const actionName = e.target.value;
+      if (!actionName) return;
+      const name = e.target.dataset.intent;
+      scene.intents[name].pool.push({ action: actionName, weight: 1, args: {} });
+      debounceSendScene("intents");
+      rebuildIntentEditor();
+    });
+  });
+  el.querySelectorAll("[data-action='action-arg']").forEach(input => {
+    input.addEventListener("input", (e) => {
+      const name = e.target.dataset.intent;
+      const ai = parseInt(e.target.dataset.ai);
+      const argName = e.target.dataset.arg;
+      const val = e.target.value;
+      const action = scene.intents[name].pool[ai];
+      if (!action.args) action.args = {};
+      if (val === "") delete action.args[argName];
+      else action.args[argName] = e.target.type === "number" ? parseFloat(val) : val;
+      debounceSendScene("intents");
+    });
+  });
+  // Also handle select change for args
+  el.querySelectorAll("select[data-action='action-arg']").forEach(select => {
+    select.addEventListener("change", (e) => {
+      const name = e.target.dataset.intent;
+      const ai = parseInt(e.target.dataset.ai);
+      const argName = e.target.dataset.arg;
+      const val = e.target.value;
+      const action = scene.intents[name].pool[ai];
+      if (!action.args) action.args = {};
+      if (val === "") delete action.args[argName];
+      else action.args[argName] = val;
+      debounceSendScene("intents");
+    });
   });
 }
 

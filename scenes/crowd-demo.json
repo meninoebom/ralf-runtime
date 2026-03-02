@@ -38,8 +38,11 @@
     {
       "id": "stillness-moment",
       "mix": { "stillness": 1.0 },
-      "gate": { "stillness": { "above": 0.5 } },
-      "intents": ["settle_down"]
+      "gate": { "stillness": { "above": 0.3 } },
+      "intents": [
+        { "intent": "drop_out", "mode": "continuous" },
+        "kill_percussion"
+      ]
     }
   ],
   "intents": {
@@ -61,10 +64,16 @@
         { "action": "trigger/unmute_track", "args": { "track": "bass" }, "weight": 3 }
       ]
     },
-    "settle_down": {
+    "drop_out": {
       "pool": [
-        { "action": "trigger/mute_track", "args": { "track": "perc" }, "weight": 2 },
-        { "action": "set/volume", "weight": 1 }
+        { "action": "set/filter_cutoff", "weight": 3 },
+        { "action": "set/volume", "weight": 2 },
+        { "action": "set/reverb_wet", "weight": 2 }
+      ]
+    },
+    "kill_percussion": {
+      "pool": [
+        { "action": "trigger/mute_track", "args": { "track": "perc" }, "weight": 1 }
       ]
     }
   },

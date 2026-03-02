@@ -1,11 +1,12 @@
 import { join } from "node:path";
+import { readFile } from "node:fs/promises";
 import { Runtime } from "./engine/runtime.js";
 import { OscServer } from "./transport/osc-server.js";
 import { WsServer } from "./transport/ws-server.js";
 import { loadScene, listScenes, saveScene } from "./scenes/loader.js";
 import { validateScene } from "./scenes/validator.js";
 import { log, setLogFile } from "./logging.js";
-import type { SceneConfig, QualityName } from "./types.js";
+import type { SceneConfig, QualityName, TranslatorManifest } from "./types.js";
 
 const OSC_IN_PORT = parseInt(process.env.RALF_OSC_IN_PORT ?? "6449", 10);
 const OSC_OUT_PORT = parseInt(process.env.RALF_OSC_OUT_PORT ?? "12000", 10);
@@ -23,6 +24,9 @@ async function main() {
     log("scene", `Logging to file: ${logFile}`);
   }
 
+  // Load translator manifest if available
+  let manifest: TranslatorManifest | null = null;
+
   // Load a scene — use first available or a default
   let scene: SceneConfig;
   const scenes = await listScenes();
@@ -31,8 +35,20 @@ async function main() {
     scene = await loadScene(scenes[0]);
     log("scene", `Loaded scene: ${scene.name}`);
 
-    // Validate scene
-    const errors = validateScene(scene);
+    // Load manifest based on translator type
+    const translatorType = scene.translator?.type;
+    if (translatorType) {
+      const manifestPath = join(process.cwd(), "..", "translators", translatorType, "manifest.json");
+      try {
+        manifest = JSON.parse(await readFile(manifestPath, "utf-8")) as TranslatorManifest;
+        log("scene", `Loaded translator manifest: ${translatorType}`);
+      } catch {
+        log("scene", `No translator manifest found for: ${translatorType}`);
+      }
+    }
+
+    // Validate scene (with manifest if available)
+    const errors = validateScene(scene, manifest ?? undefined);
     if (errors.length > 0) {
       for (const err of errors) {
         log("error", `Scene validation: ${err.path} — ${err.message}`);
@@ -109,6 +125,8 @@ async function main() {
     log("scene", `Scene saved to disk: ${runtime.getScene().name}`);
   });
   ws.setGetSceneHandler(() => runtime.getScene());
+
+  ws.setGetManifestHandler(() => manifest);
 
   // Wire outputs
   runtime.setActHandler((msg) => {

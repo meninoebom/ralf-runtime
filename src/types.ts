@@ -73,6 +73,27 @@ export interface SonicWorldConfig {
   samples?: string;
 }
 
+// ─── Translator Manifest ────────────────────────────────────────────────────
+
+export interface ManifestArgSchema {
+  type: "enum" | "number" | "string";
+  values?: string[];
+  required?: boolean;
+}
+
+export interface ManifestAction {
+  name: string;
+  type: "trigger" | "set";
+  description: string;
+  args?: Record<string, ManifestArgSchema>;
+}
+
+export interface TranslatorManifest {
+  name: string;
+  description: string;
+  actions: ManifestAction[];
+}
+
 // ─── Runtime state ──────────────────────────────────────────────────────────
 
 export type QualityName =
