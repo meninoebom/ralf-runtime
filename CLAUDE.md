@@ -115,13 +115,21 @@ The console is a single HTML file (`console/index.html`) served by the runtime o
 
 **Dashboard panels**: Dancers (quality bars), Readings (value + active badge), Acts (scrolling log + rate), Translator (tempo/playing/scene), System (connection, frames).
 
-**Scene Editor** (collapsible): Live sliders for reading mix weights, gate thresholds, intent pool weights, deterministic toggle. Changes send `updateScene` patch via WS — applied immediately without resetting calibration. Save button persists to disk.
+**Scene Editor** (collapsible): Two sections mirroring the data model:
+- **Readings section**: Left-to-right card layout per reading. Left column (Qualities): mix weight sliders, gate thresholds, live values. Right column (Intents): wired intent names as clickable links (scroll to intent section), one-shot/continuous mode toggle, per-wire thresholds. Add/remove readings, add/remove qualities.
+- **Intents section**: Each intent card shows action pool with manifest-driven action picker, weight sliders (shown as percentages), args from manifest schema, deterministic toggle. Back-reference badges show which readings use each intent.
+
+Changes send `updateScene` patch via WS — applied immediately without resetting calibration. Save persists to disk. Revert reloads from disk (not in-memory snapshot).
+
+**Translator manifest**: `translators/<type>/manifest.json` declares supported actions with type, description, and args schema. Served via `getManifest` WS command. Populates action picker dropdowns in the editor.
 
 **WebSocket commands** (console → runtime):
 - `getState` — request current state snapshot
 - `getScene` — request full scene config (populates editor)
+- `getManifest` — request translator action manifest
 - `updateScene { patch }` — hot-reload scene properties
 - `saveScene` — write current scene to disk
+- `reloadScene` — reload scene from disk and broadcast to all clients
 
 **Key gotcha**: `scene.intents[name]` can be `IntentOption[]` or `IntentPoolConfig {pool, deterministic?}`. The console normalizes to `IntentPoolConfig` on load.
 
@@ -154,12 +162,14 @@ Unknown quality names are silently ignored.
 
 **Phase 4 (Console) — COMPLETE.** Performance Console + Scene Editor at :3300. Live dashboard, real-time scene editing, save to disk.
 
-**Phase 5 (Crowd Mode) — CODE COMPLETE.** Relational qualities (synchrony, contrast, aggregate_energy) computed across dancer pairs. Virtual `_crowd` dancer auto-created when >1 dancer active. IMU adapter in `adapters/imu/` accepts phones/wristbands over WebSocket on :3400. Not yet integration-tested end-to-end.
+**Phase 5 (Crowd Mode) — INTEGRATION TESTED.** Relational qualities (synchrony, contrast, aggregate_energy) computed across dancer pairs. Virtual `_crowd` dancer auto-created when >1 dancer active. IMU adapter accepts phones/wristbands over WebSocket on :3400. Tested end-to-end with 2 phones via ngrok.
+
+**Phase 6 (Scene Editor) — COMPLETE.** Full composition tool: add/remove readings, qualities, intents, and actions. Manifest-driven action picker. Two-section layout (Readings + Intents) mirrors data model. Reading name editing, revert-from-disk, dashboard dedup. 78 tests passing.
 
 **Next priorities:**
-- Crowd integration testing — add IMU adapter to dev.sh, test with 2+ phones via ngrok
 - Hardening — smart launcher, heartbeat monitoring, reconnection logic
 - Scene library — save/load/share scene configs
+- Trajectory controls — windowed slope for "building" vs "sustaining" vs "releasing"
 
 ## After Completing Work
 
