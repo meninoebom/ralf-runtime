@@ -1619,10 +1619,8 @@ function debounceSendScene(section) {
 }
 
 function revertScene() {
-  if (!savedScene) return;
-  scene = JSON.parse(JSON.stringify(savedScene));
-  debounceSendScene("readings");
-  rebuildEditor();
+  // Ask runtime to reload from disk — the response arrives as a "scene" message
+  send({ type: "reloadScene" });
   const btn = document.getElementById("revert-btn");
   btn.classList.add("flash");
   btn.textContent = "Reverted!";

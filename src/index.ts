@@ -126,6 +126,14 @@ async function main() {
   });
   ws.setGetSceneHandler(() => runtime.getScene());
 
+  ws.setReloadSceneHandler(async () => {
+    const name = runtime.getScene().name;
+    const reloaded = await loadScene(name);
+    runtime.loadScene(reloaded);
+    log("scene", `Scene reloaded from disk: ${name}`);
+    return reloaded;
+  });
+
   ws.setGetManifestHandler(() => manifest);
 
   // Wire outputs

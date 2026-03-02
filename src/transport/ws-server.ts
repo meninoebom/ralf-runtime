@@ -17,6 +17,7 @@ export class WsServer {
   private onSaveScene: (() => Promise<void>) | null = null;
   private onGetScene: (() => SceneConfig) | null = null;
   private onGetManifest: (() => unknown | null) | null = null;
+  private onReloadScene: (() => Promise<SceneConfig | null>) | null = null;
 
   constructor(private port: number) {}
 
@@ -42,6 +43,10 @@ export class WsServer {
 
   setGetSceneHandler(handler: () => SceneConfig) {
     this.onGetScene = handler;
+  }
+
+  setReloadSceneHandler(handler: () => Promise<SceneConfig | null>) {
+    this.onReloadScene = handler;
   }
 
   setGetManifestHandler(handler: () => unknown | null) {
@@ -139,6 +144,14 @@ export class WsServer {
         if (scene) {
           ws.send(JSON.stringify({ type: "scene", scene }));
         }
+        break;
+      }
+      case "reloadScene": {
+        this.onReloadScene?.().then((reloaded) => {
+          if (reloaded) {
+            this.broadcast(JSON.stringify({ type: "scene", scene: reloaded }));
+          }
+        });
         break;
       }
       case "getManifest": {
