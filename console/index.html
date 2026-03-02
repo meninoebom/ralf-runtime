@@ -720,7 +720,18 @@ function renderState(s) {
 
   // Readings
   const readingsEl = document.getElementById("readings");
-  const readings = s.readings || [];
+  const rawReadings = s.readings || [];
+  // Deduplicate: runtime sends one entry per dancer per reading — aggregate by id
+  const readingAgg = {};
+  for (const r of rawReadings) {
+    if (!readingAgg[r.id]) {
+      readingAgg[r.id] = { id: r.id, value: r.value, active: r.active };
+    } else {
+      readingAgg[r.id].value = Math.max(readingAgg[r.id].value, r.value);
+      readingAgg[r.id].active = readingAgg[r.id].active || r.active;
+    }
+  }
+  const readings = Object.values(readingAgg);
   if (readings.length === 0) {
     readingsEl.innerHTML = '<span class="no-data">no readings</span>';
   } else {
