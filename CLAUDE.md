@@ -113,11 +113,13 @@ npm test       # Run tests (vitest)
 
 The console is a single HTML file (`console/index.html`) served by the runtime on `:3300` (`RALF_CONSOLE_PORT`).
 
-**Dashboard panels**: Dancers (quality bars, stale dancers dimmed with "(stale)" label), Readings (value + active badge, deduplicated across dancers), Acts (scrolling log + rate), Translator (tempo/playing/scene), System (connection, frames).
+**Layout**: Composer-first design. The scene editor (Readings + Intents) is the main view — always visible, no toggle. Monitoring lives in a fixed bottom signal strip with per-dancer dots (green=active, amber=stale, grey=no data) and an acts rate counter. Click any dancer dot to expand quality bars inline upward. Click acts to expand the scrolling log. Save/Revert/Save As buttons in the header bar. WS URL hidden behind gear icon.
 
-**Resilience**: Auto-reconnect with exponential backoff (1s→2s→4s→8s→15s max). Amber "stale" badge + dimmed panels when no state update for 3s. Client-side heartbeat pings every 10s, force-closes after 15s no response. WebSocket errors logged to console.
+**Signal strip performance**: Strip HTML only rebuilds when dancers join/leave or expand state changes. Value updates (dot colors, bar widths, act rate) happen in-place via querySelector/textContent to preserve scroll position and interaction state in expanded panels.
 
-**Scene Editor** (collapsible): Two sections mirroring the data model:
+**Resilience**: Auto-reconnect with exponential backoff (1s→2s→4s→8s→15s max). Amber "stale" badge when no state update for 3s. Client-side heartbeat pings every 10s, force-closes after 15s no response.
+
+**Scene Editor**: Two sections mirroring the data model:
 - **Readings section**: Left-to-right card layout per reading. Left column (Qualities): mix weight sliders, gate thresholds, live values. Right column (Intents): wired intent names as clickable links (scroll to intent section), one-shot/continuous mode toggle, per-wire thresholds. Add/remove readings, add/remove qualities.
 - **Intents section**: Each intent card shows action pool with manifest-driven action picker, weight sliders (shown as percentages), args from manifest schema, deterministic toggle. Back-reference badges show which readings use each intent.
 
