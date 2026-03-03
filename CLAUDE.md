@@ -179,6 +179,8 @@ Unknown quality names are silently ignored.
 
 **Phase 9 (Scene Library) — COMPLETE.** Scene picker dropdown in console, Save As, switch between scenes. Every save stamps `version: 1` and embeds translator manifest as `_manifest` for portability. New WS commands: listScenes, saveSceneAs, switchScene. Crowd mode tested end-to-end with 4 phones via ngrok.
 
+**Phase 10 (Console UX) — COMPLETE.** Composer-first layout: editor is the main view (no toggle), monitoring moved to fixed bottom signal strip. Per-dancer dots (green/amber/grey), inline-expandable quality bars and acts log. Save/Revert/Save As in header. Signal strip uses dirty-flag pattern for performance (rebuild HTML only on structure changes, in-place updates every frame).
+
 **Next priorities:**
 - First real rehearsal with dancer — iterate on scene design with sustained movement data
 
