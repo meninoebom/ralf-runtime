@@ -20,6 +20,9 @@ export class WsServer {
   private onGetScene: (() => SceneConfig) | null = null;
   private onGetManifest: (() => unknown | null) | null = null;
   private onReloadScene: (() => Promise<SceneConfig | null>) | null = null;
+  private onListScenes: (() => Promise<string[]>) | null = null;
+  private onSaveSceneAs: ((name: string) => Promise<void>) | null = null;
+  private onSwitchScene: ((name: string) => Promise<SceneConfig | null>) | null = null;
 
   constructor(private port: number) {}
 
@@ -53,6 +56,18 @@ export class WsServer {
 
   setGetManifestHandler(handler: () => unknown | null) {
     this.onGetManifest = handler;
+  }
+
+  setListScenesHandler(handler: () => Promise<string[]>) {
+    this.onListScenes = handler;
+  }
+
+  setSaveSceneAsHandler(handler: (name: string) => Promise<void>) {
+    this.onSaveSceneAs = handler;
+  }
+
+  setSwitchSceneHandler(handler: (name: string) => Promise<SceneConfig | null>) {
+    this.onSwitchScene = handler;
   }
 
   start() {
@@ -186,6 +201,38 @@ export class WsServer {
         if (manifest) {
           ws.send(JSON.stringify({ type: "manifest", manifest }));
         }
+        break;
+      }
+      case "switchScene": {
+        const name = msg.name as string;
+        if (!name) break;
+        this.onSwitchScene?.(name).then((switched) => {
+          if (switched) {
+            this.broadcast(JSON.stringify({ type: "scene", scene: switched }));
+          }
+        }).catch((err) => {
+          ws.send(JSON.stringify({ type: "error", message: (err as Error).message }));
+        });
+        break;
+      }
+      case "listScenes": {
+        this.onListScenes?.().then((names) => {
+          ws.send(JSON.stringify({ type: "sceneList", scenes: names }));
+        });
+        break;
+      }
+      case "saveSceneAs": {
+        const name = msg.name as string;
+        if (!name) break;
+        this.onSaveSceneAs?.(name).then(() => {
+          ws.send(JSON.stringify({ type: "sceneSaved" }));
+          // Broadcast updated scene list to all clients
+          this.onListScenes?.().then((names) => {
+            this.broadcast(JSON.stringify({ type: "sceneList", scenes: names }));
+          });
+        }).catch((err) => {
+          ws.send(JSON.stringify({ type: "error", message: (err as Error).message }));
+        });
         break;
       }
       case "ping": {

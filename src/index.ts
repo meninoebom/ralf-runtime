@@ -121,7 +121,7 @@ async function main() {
     log("scene", `Scene updated via WebSocket`);
   });
   ws.setSaveSceneHandler(async () => {
-    await saveScene(runtime.getScene());
+    await saveScene(runtime.getScene(), manifest);
     log("scene", `Scene saved to disk: ${runtime.getScene().name}`);
   });
   ws.setGetSceneHandler(() => runtime.getScene());
@@ -135,6 +135,25 @@ async function main() {
   });
 
   ws.setGetManifestHandler(() => manifest);
+
+  ws.setListScenesHandler(async () => {
+    return listScenes();
+  });
+
+  ws.setSaveSceneAsHandler(async (name: string) => {
+    const current = runtime.getScene();
+    const clone = { ...current, name };
+    await saveScene(clone, manifest);
+    runtime.loadScene(clone);
+    log("scene", `Scene saved as: ${name}`);
+  });
+
+  ws.setSwitchSceneHandler(async (name: string) => {
+    const loaded = await loadScene(name);
+    runtime.loadScene(loaded);
+    log("scene", `Switched to scene: ${name}`);
+    return loaded;
+  });
 
   // Wire outputs
   runtime.setActHandler((msg) => {

@@ -16,6 +16,7 @@ export interface SceneConfig {
   readings: ReadingConfig[];
   intents: Record<string, IntentOption[] | IntentPoolConfig>;
   translator: TranslatorConfig;
+  _manifest?: TranslatorManifest;
   /** @deprecated Use `translator` instead */
   sonic_world?: SonicWorldConfig;
 }

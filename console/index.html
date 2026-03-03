@@ -525,7 +525,9 @@
   </div>
   <div class="status-item">
     <span>scene:</span>
-    <span class="info-value green" id="scene-name">—</span>
+    <select id="scene-picker" style="font-family:inherit;font-size:11px;background:#111;color:#4a4;border:1px solid #333;border-radius:4px;padding:2px 6px;cursor:pointer;" onchange="switchScene(this.value)">
+      <option value="">—</option>
+    </select>
   </div>
   <div class="status-item">
     <span>tick:</span>
@@ -585,6 +587,7 @@
     <div style="margin-top:20px; padding-top:16px; border-top:1px solid #1a1a1a; display:flex; gap:12px;">
       <button class="save-btn" id="revert-btn" onclick="revertScene()" style="flex:0 0 auto;">Revert to Saved</button>
       <button class="save-btn" id="save-btn" onclick="saveScene()" style="flex:0 0 auto;">Save Scene</button>
+      <button class="save-btn" id="save-as-btn" onclick="saveSceneAs()" style="flex:0 0 auto;">Save As…</button>
     </div>
   </div>
 </div>
@@ -635,6 +638,7 @@ function connect() {
     send({ type: "getState" });
     send({ type: "getScene" });
     send({ type: "getManifest" });
+    send({ type: "listScenes" });
 
     // Client-side heartbeat
     clearInterval(heartbeatInterval);
@@ -675,6 +679,9 @@ function connect() {
         case "manifest":
           manifest = msg.manifest;
           if (scene) rebuildIntentEditor();
+          break;
+        case "sceneList":
+          updateScenePicker(msg.scenes || []);
           break;
         case "ping":
           send({ type: "pong", name: "console" });
@@ -786,7 +793,11 @@ function renderState(s) {
     document.getElementById("tr-tempo").textContent = ts.tempo ? Math.round(ts.tempo) + " BPM" : "—";
     document.getElementById("tr-playing").textContent = ts.playing ? "playing" : "stopped";
     document.getElementById("tr-scene").textContent = ts.scene !== undefined ? ts.scene : "—";
-    document.getElementById("scene-name").textContent = scene ? scene.name : (ts.scene !== undefined ? ts.scene : "—");
+    // Update scene picker selection to match current scene
+    const picker = document.getElementById("scene-picker");
+    if (scene && picker.value !== scene.name) {
+      picker.value = scene.name;
+    }
   }
 
   // Dancers
@@ -1780,6 +1791,33 @@ function debounceSendScene(section) {
     if (scene.settings) patch.settings = scene.settings;
     send({ type: "updateScene", patch });
   }, DEBOUNCE_MS);
+}
+
+function updateScenePicker(names) {
+  const picker = document.getElementById("scene-picker");
+  const current = scene ? scene.name : "";
+  picker.innerHTML = names.map(n =>
+    `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`
+  ).join("");
+}
+
+function switchScene(name) {
+  if (!name) return;
+  send({ type: "switchScene", name });
+}
+
+function saveSceneAs() {
+  const name = prompt("Save scene as:", scene ? scene.name + "-copy" : "new-scene");
+  if (!name) return;
+  const sanitized = name.replace(/[^a-zA-Z0-9_-]/g, "-");
+  send({ type: "saveSceneAs", name: sanitized });
+  const btn = document.getElementById("save-as-btn");
+  btn.classList.add("flash");
+  btn.textContent = "Saved!";
+  setTimeout(() => {
+    btn.classList.remove("flash");
+    btn.textContent = "Save As…";
+  }, 1200);
 }
 
 function revertScene() {
