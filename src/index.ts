@@ -136,9 +136,7 @@ async function main() {
 
   ws.setGetManifestHandler(() => manifest);
 
-  ws.setListScenesHandler(async () => {
-    return listScenes();
-  });
+  ws.setListScenesHandler(() => listScenes());
 
   ws.setSaveSceneAsHandler(async (name: string) => {
     const current = runtime.getScene();

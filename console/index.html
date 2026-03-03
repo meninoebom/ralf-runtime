@@ -10,16 +10,20 @@
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
     background: #0a0a0a; color: #ccc;
     display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; padding: 24px;
+    min-height: 100vh; padding: 24px 24px 56px;
   }
   h1 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 2px; }
-  .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+  .subtitle { font-size: 11px; color: #555; margin-bottom: 16px; }
 
-  .status-row {
-    display: flex; gap: 20px; margin-bottom: 16px; font-size: 11px;
-    flex-wrap: wrap; justify-content: center;
+  /* Header bar: scene picker, connection, save buttons */
+  .header-bar {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 16px; flex-wrap: wrap; justify-content: center;
+    width: 100%; max-width: 1100px;
   }
-  .status-item { display: flex; gap: 6px; align-items: center; }
+  .header-bar .spacer { flex: 1; }
+
+  .status-item { display: flex; gap: 6px; align-items: center; font-size: 11px; }
   .dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: #333; display: inline-block;
@@ -29,10 +33,6 @@
   .dot.reconnecting { background: #aa4; animation: pulse 1s infinite; }
   @keyframes pulse { 50% { opacity: 0.3; } }
 
-  .top-bar {
-    display: flex; gap: 12px; align-items: center;
-    margin-bottom: 20px; flex-wrap: wrap; justify-content: center;
-  }
   button {
     font-family: inherit; font-size: 12px; padding: 8px 16px;
     border: 1px solid #333; border-radius: 4px; cursor: pointer;
@@ -40,22 +40,15 @@
   }
   button:hover { background: #252525; border-color: #555; }
 
-  .panels {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 16px; width: 100%; max-width: 1100px; margin-bottom: 16px;
+  .save-btn {
+    background: #1a3a1a; border-color: #2a5a2a; color: #5c5;
+    font-weight: 600; padding: 6px 14px; font-size: 11px;
+    letter-spacing: 0.3px;
   }
-  @media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+  .save-btn:hover { background: #254025; border-color: #3a6a3a; }
+  .save-btn.flash { background: #2a5a2a; color: #fff; }
 
-  .panel {
-    background: #111; border: 1px solid #222; border-radius: 6px;
-    padding: 12px; min-height: 120px;
-  }
-  .panel-title {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
-    color: #555; margin-bottom: 10px;
-  }
-
-  /* Quality / reading bars */
+  /* Quality / reading bars (used in signal strip detail panels + editor) */
   .bar-row {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 5px; font-size: 11px;
@@ -94,7 +87,6 @@
   .log-entry .addr { color: #7a7; }
   .log-entry .args { color: #77a; }
   .log-entry .ts { color: #444; }
-  .rate { font-size: 10px; color: #555; float: right; }
 
   /* Info rows */
   .info-row {
@@ -105,19 +97,10 @@
   .info-value { color: #ccc; }
   .info-value.green { color: #5c5; }
 
-  /* Scene editor */
-  .editor-section {
-    width: 100%; max-width: 1100px; margin-bottom: 16px;
+  /* Editor is the main content now */
+  .editor-content {
+    width: 100%; max-width: 1100px;
   }
-  .editor-toggle {
-    font-size: 12px; color: #666; cursor: pointer;
-    padding: 10px 0; user-select: none;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    transition: color 0.15s;
-  }
-  .editor-toggle:hover { color: #aaa; }
-  .editor-body { display: none; padding-top: 4px; }
-  .editor-body.open { display: block; }
 
   /* Section dividers between readings and intents */
   .editor-section-label {
@@ -221,9 +204,6 @@
     margin-bottom: 12px;
   }
 
-  /* Clickable live bars */
-  .bar-row.clickable { cursor: pointer; border-radius: 3px; padding: 1px 4px; margin: 0 -4px 5px; transition: background 0.15s; }
-  .bar-row.clickable:hover { background: rgba(255,255,255,0.03); }
   .editor-group-title {
     font-size: 11px; color: #5c5; margin-bottom: 8px; font-weight: 600;
     letter-spacing: 0.3px;
@@ -256,14 +236,6 @@
     accent-color: #4a4; width: 14px; height: 14px; cursor: pointer;
   }
 
-  .save-btn {
-    background: #1a3a1a; border-color: #2a5a2a; color: #5c5;
-    font-weight: 600; padding: 10px 24px; font-size: 12px;
-    letter-spacing: 0.3px;
-  }
-  .save-btn:hover { background: #254025; border-color: #3a6a3a; }
-  .save-btn.flash { background: #2a5a2a; color: #fff; }
-
   .intent-actions { margin-left: 16px; }
   .intent-header { font-size: 11px; color: #aaa; margin: 6px 0 2px; }
   .intent-mode { font-size: 10px; color: #666; margin-left: 8px; }
@@ -277,7 +249,6 @@
     margin-left: 6px; vertical-align: middle;
   }
   #stale-badge.visible { display: inline; }
-  .panels-dim .panel { opacity: 0.5; transition: opacity 0.3s; }
 
   /* Stale dancer styling */
   .dancer-section.stale .bar-fill { opacity: 0.4; }
@@ -504,92 +475,126 @@
     transition: all 0.15s;
   }
   .intent-usage-badge:hover { color: #5c5; border-color: #3a6a3a; }
+
+  /* ─── Signal Strip (fixed bottom bar) ─── */
+  .signal-strip {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 36px; background: #0f0f0f;
+    border-top: 1px solid #222;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 16px; z-index: 100;
+    font-size: 11px;
+  }
+  .signal-dancer {
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .signal-dancer:hover { background: rgba(255,255,255,0.04); }
+  .signal-dancer.expanded { background: rgba(68,170,68,0.08); }
+  .signal-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #333; transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+  }
+  .signal-dot.active {
+    background: #4a4;
+    box-shadow: 0 0 6px rgba(68,170,68,0.5);
+    animation: pulse 2s infinite;
+  }
+  .signal-dot.stale {
+    background: #aa4;
+  }
+  .signal-dancer-label { color: #666; font-size: 10px; }
+  .signal-dancer.expanded .signal-dancer-label { color: #5c5; }
+
+  .signal-acts {
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .signal-acts:hover { background: rgba(255,255,255,0.04); }
+  .signal-acts.expanded { background: rgba(119,119,170,0.08); }
+  .signal-acts-label { color: #555; font-size: 10px; }
+  .signal-acts-rate { color: #77a; font-size: 10px; font-variant-numeric: tabular-nums; }
+
+  .signal-spacer { flex: 1; }
+  .signal-conn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px;
+  }
+  .signal-conn .dot { width: 6px; height: 6px; }
+  .signal-conn-label { color: #555; }
+
+  /* Inline-expand detail panels (grow upward from strip) */
+  .detail-panel {
+    position: absolute; bottom: 36px; left: 0;
+    background: #111; border: 1px solid #222;
+    border-radius: 6px 6px 0 0;
+    padding: 12px; min-width: 280px; max-height: 320px;
+    overflow-y: auto; z-index: 101;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+  }
+  .detail-panel-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: #555; margin-bottom: 8px;
+  }
+
+  /* WS URL config (hidden by default, toggled by gear) */
+  .ws-config {
+    display: none; align-items: center; gap: 8px;
+    margin-bottom: 12px; justify-content: center;
+  }
+  .ws-config.open { display: flex; }
+  .gear-btn {
+    background: none; border: none; color: #444; cursor: pointer;
+    font-size: 14px; padding: 4px 8px; transition: color 0.15s;
+  }
+  .gear-btn:hover { color: #888; }
 </style>
 </head>
 <body>
 
-<h1>RALF Performance Console</h1>
-<div class="subtitle">runtime dashboard + scene editor</div>
+<h1>RALF</h1>
+<div class="subtitle">interaction design console</div>
 
-<div class="top-bar">
-  <button onclick="reconnect()">Reconnect</button>
-  <input id="ws-url" type="text" value="ws://localhost:8765"
-    style="font-family:inherit;font-size:11px;background:#111;color:#888;border:1px solid #333;border-radius:4px;padding:6px 10px;width:200px;">
-</div>
-
-<div class="status-row">
+<div class="header-bar">
   <div class="status-item">
     <span class="dot" id="ws-dot"></span>
     <span id="ws-status">disconnected</span>
     <span id="stale-badge">stale</span>
   </div>
   <div class="status-item">
-    <span>scene:</span>
     <select id="scene-picker" style="font-family:inherit;font-size:11px;background:#111;color:#4a4;border:1px solid #333;border-radius:4px;padding:2px 6px;cursor:pointer;" onchange="switchScene(this.value)">
       <option value="">—</option>
     </select>
   </div>
-  <div class="status-item">
-    <span>tick:</span>
-    <span class="info-value" id="tick-count">0</span>
-  </div>
-  <div class="status-item">
-    <span>fps:</span>
-    <span class="info-value" id="frame-rate">0</span>
-  </div>
+  <button class="gear-btn" onclick="toggleWsConfig()" title="Connection settings">⚙</button>
+  <div class="spacer"></div>
+  <button class="save-btn" id="revert-btn" onclick="revertScene()">Revert</button>
+  <button class="save-btn" id="save-btn" onclick="saveScene()">Save</button>
+  <button class="save-btn" id="save-as-btn" onclick="saveSceneAs()">Save As…</button>
 </div>
 
-<div class="panels">
-  <!-- Left column -->
-  <div>
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-title">Dancers</div>
-      <div id="dancers"><span class="no-data">waiting for data…</span></div>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Readings</div>
-      <div id="readings"><span class="no-data">waiting for data…</span></div>
-    </div>
-  </div>
-
-  <!-- Right column -->
-  <div>
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-title">Acts <span class="rate" id="act-rate">0 acts/s</span></div>
-      <div class="log" id="act-log"><span class="no-data">no acts yet</span></div>
-    </div>
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-title">Translator</div>
-      <div id="translator-info">
-        <div class="info-row"><span class="info-label">tempo</span><span class="info-value" id="tr-tempo">—</span></div>
-        <div class="info-row"><span class="info-label">playing</span><span class="info-value" id="tr-playing">—</span></div>
-        <div class="info-row"><span class="info-label">scene</span><span class="info-value" id="tr-scene">—</span></div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-title">System</div>
-      <div id="system-info">
-        <div class="info-row"><span class="info-label">connection</span><span class="info-value" id="sys-conn">disconnected</span></div>
-        <div class="info-row"><span class="info-label">frames received</span><span class="info-value" id="sys-frames">0</span></div>
-      </div>
-    </div>
-  </div>
+<div class="ws-config" id="ws-config">
+  <input id="ws-url" type="text" value="ws://localhost:8765"
+    style="font-family:inherit;font-size:11px;background:#111;color:#888;border:1px solid #333;border-radius:4px;padding:6px 10px;width:200px;">
+  <button onclick="reconnect()" style="font-size:11px;padding:6px 12px;">Reconnect</button>
 </div>
 
-<!-- Scene Editor -->
-<div class="editor-section">
-  <div class="editor-toggle" id="editor-toggle" onclick="toggleEditor()">▶ Scene Editor</div>
-  <div class="editor-body" id="editor-body">
-    <div class="editor-section-label">Readings <span class="info-icon" title="A reading combines qualities into a single signal that triggers intents">?</span></div>
-    <div id="reading-editor"></div>
-    <div class="editor-section-label">Intents <span class="info-icon" title="An intent defines what happens — the actions triggered when a reading activates">?</span></div>
-    <div id="intent-editor"></div>
-    <div style="margin-top:20px; padding-top:16px; border-top:1px solid #1a1a1a; display:flex; gap:12px;">
-      <button class="save-btn" id="revert-btn" onclick="revertScene()" style="flex:0 0 auto;">Revert to Saved</button>
-      <button class="save-btn" id="save-btn" onclick="saveScene()" style="flex:0 0 auto;">Save Scene</button>
-      <button class="save-btn" id="save-as-btn" onclick="saveSceneAs()" style="flex:0 0 auto;">Save As…</button>
-    </div>
-  </div>
+<!-- Editor is the main content -->
+<div class="editor-content">
+  <div class="editor-section-label">Readings <span class="info-icon" title="A reading combines qualities into a single signal that triggers intents">?</span></div>
+  <div id="reading-editor"></div>
+  <div class="editor-section-label">Intents <span class="info-icon" title="An intent defines what happens — the actions triggered when a reading activates">?</span></div>
+  <div id="intent-editor"></div>
+</div>
+
+<!-- Signal strip (fixed bottom bar) -->
+<div class="signal-strip" id="signal-strip">
+  <span class="signal-acts-label" style="color:#444">no signal</span>
 </div>
 
 <script>
@@ -616,10 +621,14 @@ let renderDirty = true;
 let editorDirty = false;
 let debounceTimer = null;
 let manifest = null;
-let savedScene = null;
 let lastStateTime = 0;
 let lastMessageTime = 0;
 let heartbeatInterval = null;
+
+// Signal strip state
+let expandedDancers = new Set();
+let actsExpanded = false;
+let stripDirty = true; // only rebuild strip HTML when structure changes
 
 // ─── WebSocket ───────────────────────────────────────────────────────────────
 function connect() {
@@ -645,7 +654,6 @@ function connect() {
     heartbeatInterval = setInterval(() => {
       const now = Date.now();
       if (now - lastMessageTime > 15000) {
-        // No message for 15s — force reconnect
         ws.close();
       } else if (now - lastMessageTime > 10000) {
         send({ type: "ping" });
@@ -660,9 +668,7 @@ function connect() {
       switch (msg.type) {
         case "state":
           lastStateTime = Date.now();
-          // Clear stale indicator
           document.getElementById("stale-badge").classList.remove("visible");
-          document.querySelector(".panels").classList.remove("panels-dim");
           latestState = msg;
           frameCount++;
           renderDirty = true;
@@ -673,7 +679,6 @@ function connect() {
           break;
         case "scene":
           scene = msg.scene;
-          savedScene = JSON.parse(JSON.stringify(msg.scene));
           rebuildEditor();
           break;
         case "manifest":
@@ -696,7 +701,6 @@ function connect() {
     setConnectionStatus("disconnected");
     clearInterval(heartbeatInterval);
     document.getElementById("stale-badge").classList.remove("visible");
-    document.querySelector(".panels").classList.remove("panels-dim");
     reconnectAttempt++;
     reconnectTimer = setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
@@ -722,7 +726,10 @@ function setConnectionStatus(status) {
     ? `reconnecting (attempt ${reconnectAttempt})…`
     : status;
   document.getElementById("ws-status").textContent = label;
-  document.getElementById("sys-conn").textContent = label;
+}
+
+function toggleWsConfig() {
+  document.getElementById("ws-config").classList.toggle("open");
 }
 
 // ─── Act log ─────────────────────────────────────────────────────────────────
@@ -745,17 +752,14 @@ function getActRate() {
 // ─── Render loop ─────────────────────────────────────────────────────────────
 function renderLoop() {
   requestAnimationFrame(renderLoop);
-  // Always check stale even if no new data; skip heavy render if not dirty
-  const checkStale = lastStateTime > 0 && ws && ws.readyState === WebSocket.OPEN;
-  if (!renderDirty && !checkStale) return;
-  if (!renderDirty) {
-    // Only run stale check, skip full render
-    if (Date.now() - lastStateTime > 3000) {
-      document.getElementById("stale-badge").classList.add("visible");
-      document.querySelector(".panels").classList.add("panels-dim");
-    }
-    return;
+  // Stale detection runs every frame regardless of renderDirty
+  const isStale = lastStateTime > 0 && ws && ws.readyState === WebSocket.OPEN
+    && Date.now() - lastStateTime > 3000;
+  if (isStale) {
+    document.getElementById("stale-badge").classList.add("visible");
   }
+
+  if (!renderDirty) return;
   renderDirty = false;
 
   // FPS calculation
@@ -766,105 +770,157 @@ function renderLoop() {
     lastFpsTime = now;
   }
 
-  document.getElementById("frame-rate").textContent = fps;
-  document.getElementById("sys-frames").textContent = frameCount;
-
-  // Stale state detection
-  if (lastStateTime > 0 && ws && ws.readyState === WebSocket.OPEN && Date.now() - lastStateTime > 3000) {
-    document.getElementById("stale-badge").classList.add("visible");
-    document.querySelector(".panels").classList.add("panels-dim");
-  }
-
   if (latestState) {
-    renderState(latestState);
+    renderSignalStrip(latestState);
     updateEditorLive(latestState);
   }
-  renderActLog();
-  document.getElementById("act-rate").textContent = getActRate() + " acts/s";
 }
 
-function renderState(s) {
-  // Tick
-  document.getElementById("tick-count").textContent = s.tick || 0;
+// ─── Signal Strip ────────────────────────────────────────────────────────────
+let lastStripDancerIds = [];
 
-  // Translator
-  if (s.translatorState) {
-    const ts = s.translatorState;
-    document.getElementById("tr-tempo").textContent = ts.tempo ? Math.round(ts.tempo) + " BPM" : "—";
-    document.getElementById("tr-playing").textContent = ts.playing ? "playing" : "stopped";
-    document.getElementById("tr-scene").textContent = ts.scene !== undefined ? ts.scene : "—";
-    // Update scene picker selection to match current scene
-    const picker = document.getElementById("scene-picker");
-    if (scene && picker.value !== scene.name) {
-      picker.value = scene.name;
-    }
-  }
-
-  // Dancers
-  const dancersEl = document.getElementById("dancers");
+function renderSignalStrip(s) {
   const dancers = s.dancers || {};
   const dancerIds = Object.keys(dancers);
-  if (dancerIds.length === 0) {
-    dancersEl.innerHTML = '<span class="no-data">no dancers</span>';
-  } else {
-    let html = "";
-    for (const id of dancerIds) {
+
+  // Check if strip structure changed (dancers added/removed)
+  if (dancerIds.join(",") !== lastStripDancerIds.join(",")) {
+    stripDirty = true;
+    lastStripDancerIds = dancerIds;
+  }
+
+  // Rebuild HTML only when structure changes
+  if (stripDirty) {
+    rebuildStripHTML(dancerIds, dancers);
+    stripDirty = false;
+  }
+
+  // Update values in-place every frame
+  updateStripValues(dancerIds, dancers);
+}
+
+function rebuildStripHTML(dancerIds, dancers) {
+  const strip = document.getElementById("signal-strip");
+  let html = "";
+
+  for (const id of dancerIds) {
+    const expanded = expandedDancers.has(id);
+    html += `<div class="signal-dancer${expanded ? ' expanded' : ''}" data-dancer-id="${id}" onclick="toggleDancerDetail('${id}')">`;
+    html += `<span class="signal-dot" data-dot-id="${id}"></span>`;
+    html += `<span class="signal-dancer-label">${id}</span>`;
+    if (expanded) {
       const d = dancers[id];
-      const isStale = d.stale === true;
-      html += `<div class="dancer-section${isStale ? ' stale' : ''}">`;
-      html += `<div class="dancer-header">${id}${isStale ? '<span class="dancer-stale-label">(stale)</span>' : ''}</div>`;
+      const quals = d ? (d.qualities || {}) : {};
+      html += `<div class="detail-panel" onclick="event.stopPropagation()">`;
+      html += `<div class="detail-panel-title">${id}<span data-stale-label="${id}"></span></div>`;
+      for (const q of Object.keys(quals)) {
+        html += `<div class="bar-row">
+          <span class="bar-label" data-qlabel="${id}:${q}">${q}</span>
+          <div class="bar-bg"><div class="bar-fill" data-qbar="${id}:${q}" style="width:0%"></div></div>
+          <span class="bar-value" data-qval="${id}:${q}">0.00</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Acts indicator
+  html += `<div class="signal-acts${actsExpanded ? ' expanded' : ''}" onclick="toggleActsDetail()">`;
+  html += `<span class="signal-acts-label">acts</span>`;
+  html += `<span class="signal-acts-rate" id="strip-act-rate">0/s</span>`;
+  if (actsExpanded) {
+    html += `<div class="detail-panel" onclick="event.stopPropagation()" style="min-width:350px;right:0;left:auto;">`;
+    html += `<div class="detail-panel-title">Acts Log</div>`;
+    html += `<div class="log" id="strip-act-log"><span class="no-data">no acts yet</span></div>`;
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="signal-spacer"></div>`;
+  html += `<div class="signal-conn">`;
+  html += `<span class="signal-conn-label" id="strip-fps">0 fps</span>`;
+  html += `</div>`;
+
+  strip.innerHTML = html;
+}
+
+function updateStripValues(dancerIds, dancers) {
+  // Update dancer dots and detail panels in-place
+  for (const id of dancerIds) {
+    const d = dancers[id];
+    if (!d) continue;
+    const isStale = d.stale === true;
+    const hasSignal = Object.values(d.qualities || {}).some(v => v > 0.01);
+    const dot = document.querySelector(`[data-dot-id="${id}"]`);
+    if (dot) {
+      dot.className = "signal-dot" + (isStale ? " stale" : hasSignal ? " active" : "");
+    }
+    const staleLabel = document.querySelector(`[data-stale-label="${id}"]`);
+    if (staleLabel) {
+      staleLabel.innerHTML = isStale ? ' <span style="color:#aa4">(stale)</span>' : '';
+    }
+
+    // Update quality bars if expanded
+    if (expandedDancers.has(id)) {
       const quals = d.qualities || {};
       for (const [q, v] of Object.entries(quals)) {
         const pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
         const dim = v < 0.01;
-        html += `<div class="bar-row">
-          <span class="bar-label${dim ? ' dim' : ''}">${q}</span>
-          <div class="bar-bg"><div class="bar-fill${dim ? ' dim' : ''}" style="width:${pct}%"></div></div>
-          <span class="bar-value">${v.toFixed(2)}</span>
-        </div>`;
+        const bar = document.querySelector(`[data-qbar="${id}:${q}"]`);
+        if (bar) {
+          bar.style.width = pct + "%";
+          bar.className = "bar-fill" + (dim ? " dim" : "");
+        }
+        const val = document.querySelector(`[data-qval="${id}:${q}"]`);
+        if (val) val.textContent = v.toFixed(2);
+        const label = document.querySelector(`[data-qlabel="${id}:${q}"]`);
+        if (label) label.className = "bar-label" + (dim ? " dim" : "");
       }
-      html += `</div>`; // close dancer-section
     }
-    dancersEl.innerHTML = html;
   }
 
-  // Readings
-  const readingsEl = document.getElementById("readings");
-  const rawReadings = s.readings || [];
-  // Deduplicate: runtime sends one entry per dancer per reading — aggregate by id
-  const readingAgg = {};
-  for (const r of rawReadings) {
-    if (!readingAgg[r.id]) {
-      readingAgg[r.id] = { id: r.id, value: r.value, active: r.active, slope: r.slope };
-    } else {
-      readingAgg[r.id].value = Math.max(readingAgg[r.id].value, r.value);
-      readingAgg[r.id].active = readingAgg[r.id].active || r.active;
-      if (r.slope !== undefined) readingAgg[r.id].slope = r.slope;
-    }
-  }
-  const readings = Object.values(readingAgg);
-  if (readings.length === 0) {
-    readingsEl.innerHTML = '<span class="no-data">no readings</span>';
-  } else {
-    let html = "";
-    for (const r of readings) {
-      const pct = Math.round(Math.max(0, Math.min(1, r.value)) * 100);
-      let slopeHtml = "";
-      if (r.slope !== undefined && r.slope !== null) {
-        const arrow = r.slope > 0.03 ? "↑" : r.slope < -0.03 ? "↓" : "→";
-        const cls = r.slope > 0.03 ? "slope-up" : r.slope < -0.03 ? "slope-down" : "slope-flat";
-        slopeHtml = `<span class="slope-display ${cls}">${arrow}${Math.abs(r.slope).toFixed(2)}</span>`;
+  // Update acts rate + log
+  const rateEl = document.getElementById("strip-act-rate");
+  if (rateEl) rateEl.textContent = getActRate() + "/s";
+
+  if (actsExpanded) {
+    const logEl = document.getElementById("strip-act-log");
+    if (logEl) {
+      if (actLogEntries.length === 0) {
+        logEl.innerHTML = '<span class="no-data">no acts yet</span>';
+      } else {
+        let html = "";
+        for (const e of actLogEntries) {
+          html += `<div class="log-entry"><span class="ts">${e.time}</span> <span class="addr">${e.address}</span> <span class="args">${e.argsStr}</span></div>`;
+        }
+        logEl.innerHTML = html;
       }
-      html += `<div class="bar-row clickable" onclick="scrollToReadingCard('${r.id}')" title="Click to jump to editor">
-        <span class="bar-label"><span class="active-badge ${r.active ? 'on' : 'off'}"></span>${r.id}</span>
-        <div class="bar-bg tall"><div class="bar-fill${r.active ? '' : ' dim'}" style="width:${pct}%"></div></div>
-        <span class="bar-value">${r.value.toFixed(2)}${slopeHtml}</span>
-      </div>`;
     }
-    readingsEl.innerHTML = html;
   }
+
+  // FPS
+  const fpsEl = document.getElementById("strip-fps");
+  if (fpsEl) fpsEl.textContent = fps + " fps";
 }
 
+function toggleDancerDetail(id) {
+  if (expandedDancers.has(id)) {
+    expandedDancers.delete(id);
+  } else {
+    expandedDancers.add(id);
+  }
+  stripDirty = true;
+  renderDirty = true;
+}
+
+function toggleActsDetail() {
+  actsExpanded = !actsExpanded;
+  stripDirty = true;
+  renderDirty = true;
+}
+
+// ─── Editor live updates ─────────────────────────────────────────────────────
 function updateEditorLive(s) {
   // Update live quality values next to mix sliders
   const dancers = s.dancers || {};
@@ -917,9 +973,6 @@ function updateEditorLive(s) {
 }
 
 function scrollToReadingCard(readingId) {
-  const body = document.getElementById("editor-body");
-  if (!body.classList.contains("open")) toggleEditor();
-
   const cards = document.querySelectorAll("[data-reading-index]");
   for (const card of cards) {
     const ri = parseInt(card.dataset.readingIndex);
@@ -934,9 +987,6 @@ function scrollToReadingCard(readingId) {
 }
 
 function scrollToIntentCard(intentName) {
-  const body = document.getElementById("editor-body");
-  if (!body.classList.contains("open")) toggleEditor();
-
   const cards = document.querySelectorAll("[data-intent-name]");
   for (const card of cards) {
     if (card.dataset.intentName === intentName) {
@@ -948,27 +998,7 @@ function scrollToIntentCard(intentName) {
   }
 }
 
-function renderActLog() {
-  const logEl = document.getElementById("act-log");
-  if (actLogEntries.length === 0) {
-    logEl.innerHTML = '<span class="no-data">no acts yet</span>';
-    return;
-  }
-  let html = "";
-  for (const e of actLogEntries) {
-    html += `<div class="log-entry"><span class="ts">${e.time}</span> <span class="addr">${e.address}</span> <span class="args">${e.argsStr}</span></div>`;
-  }
-  logEl.innerHTML = html;
-}
-
 // ─── Scene Editor ────────────────────────────────────────────────────────────
-function toggleEditor() {
-  const body = document.getElementById("editor-body");
-  const toggle = document.getElementById("editor-toggle");
-  const open = body.classList.toggle("open");
-  toggle.textContent = (open ? "▼" : "▶") + " Scene Editor";
-}
-
 function rebuildEditor() {
   if (!scene) return;
   rebuildReadingEditor();
@@ -1052,7 +1082,6 @@ function rebuildReadingEditor() {
   const el = document.getElementById("reading-editor");
   const readings = scene.readings || [];
 
-  // Track highest reading-N id for counter
   for (const r of readings) {
     const m = (r.id || "").match(/^reading-(\d+)$/);
     if (m) readingCounter = Math.max(readingCounter, parseInt(m[1]));
@@ -1060,7 +1089,6 @@ function rebuildReadingEditor() {
 
   let html = "";
 
-  // Show templates when no readings exist
   if (readings.length === 0) {
     html += `<div class="empty-state">`;
     html += `<div class="empty-title">No readings yet — start from a template or create a blank one</div>`;
@@ -1079,7 +1107,6 @@ function rebuildReadingEditor() {
     const r = readings[ri];
     html += `<div class="editor-group" data-reading-index="${ri}">`;
 
-    // Header
     html += `<div class="reading-header">`;
     html += `<div class="reading-title-row">`;
     html += `<span class="active-badge off" data-live-reading="${r.id || ri}"></span>`;
@@ -1088,7 +1115,6 @@ function rebuildReadingEditor() {
     html += `</div>`;
     html += `</div>`;
 
-    // Two-column layout
     html += `<div class="reading-columns">`;
 
     // Left column: Qualities
@@ -1112,7 +1138,6 @@ function rebuildReadingEditor() {
         <button class="remove-btn" data-ri="${ri}" data-quality="${q}" data-action="remove-quality" title="Remove quality">×</button>
       </div>`;
 
-      // Gate config for this quality
       const gc = r.gate && r.gate[q];
       html += `<div class="gate-row">
         <label title="The reading activates when this quality rises above this value">above</label>
@@ -1368,10 +1393,8 @@ function onGateInput(e) {
 function onTrajectoryInput(e) {
   const input = e.target;
   const ri = parseInt(input.dataset.ri);
-  const type = input.dataset.type;
   const r = scene.readings[ri];
 
-  // Read all three trajectory values from the DOM inputs in this reading card
   const card = input.closest(".editor-group");
   const windowInput = card.querySelector("input[data-type='traj-window']");
   const aboveInput = card.querySelector("input[data-type='traj-above']");
@@ -1415,7 +1438,6 @@ function updateIntentWire(ri, ii, changes) {
     else intent.below = changes.below;
   }
 
-  // Simplify back to string if just edge mode with no thresholds
   const keys = Object.keys(intent).filter(k => k !== "intent");
   if (keys.length === 0) {
     r.intents[ii] = name;
@@ -1435,7 +1457,6 @@ function getManifestActionNames() {
   return manifest.actions.map(a => a.name);
 }
 
-// Renders action cards + add-action dropdown for a given intent name
 function renderActionsHTML(name) {
   const entry = scene.intents[name];
   if (!entry) return "";
@@ -1515,7 +1536,6 @@ function renderActionsHTML(name) {
   return html;
 }
 
-// Count how many readings reference each intent
 function getIntentUsageCounts() {
   const counts = {};
   for (const r of (scene.readings || [])) {
@@ -1527,7 +1547,6 @@ function getIntentUsageCounts() {
   return counts;
 }
 
-// Get list of reading IDs that reference a given intent
 function getIntentUsageReadings(intentName) {
   const result = [];
   for (const r of (scene.readings || [])) {
@@ -1542,7 +1561,6 @@ function getIntentUsageReadings(intentName) {
   return result;
 }
 
-// Attach action-related listeners to a container element
 function attachActionListeners(el) {
   el.querySelectorAll("input[type=range][data-type='intent-weight']").forEach(input => {
     input.addEventListener("input", onIntentSlider);
@@ -1602,7 +1620,6 @@ function rebuildIntentEditor() {
   const intents = scene.intents || {};
   const intentNames = Object.keys(intents);
 
-  // Normalize arrays to IntentPoolConfig
   for (const name of intentNames) {
     if (Array.isArray(intents[name])) {
       scene.intents[name] = { pool: intents[name], deterministic: false };
@@ -1627,14 +1644,12 @@ function rebuildIntentEditor() {
     html += `<div class="editor-group" data-intent-name="${name}">`;
     html += `<div class="intent-card">`;
 
-    // Header with editable name
     html += `<div class="intent-card-header">`;
     html += `<div class="editor-group-title">Intent:</div>`;
     html += `<input type="text" class="intent-name-input" value="${name}" data-intent="${name}" data-action="rename-intent">`;
     html += `<button class="remove-btn" data-intent="${name}" data-action="remove-intent-card" title="Remove intent">×</button>`;
     html += `</div>`;
 
-    // Usage badges
     if (usageReadings.length > 0) {
       html += `<div class="intent-usage-badges">`;
       for (const rid of usageReadings) {
@@ -1643,11 +1658,10 @@ function rebuildIntentEditor() {
       html += `</div>`;
     }
 
-    // Actions
     html += renderActionsHTML(name);
 
-    html += `</div>`; // end intent-card
-    html += `</div>`; // end editor-group
+    html += `</div>`;
+    html += `</div>`;
   }
 
   html += `<div style="margin-top:8px;">
@@ -1656,10 +1670,8 @@ function rebuildIntentEditor() {
 
   el.innerHTML = html;
 
-  // Attach action listeners
   attachActionListeners(el);
 
-  // Rename intent listeners
   el.querySelectorAll("[data-action='rename-intent']").forEach(input => {
     input.addEventListener("change", (e) => {
       const oldName = e.target.dataset.intent;
@@ -1673,10 +1685,8 @@ function rebuildIntentEditor() {
         e.target.value = oldName;
         return;
       }
-      // Rename in intents map
       scene.intents[newName] = scene.intents[oldName];
       delete scene.intents[oldName];
-      // Update all reading references
       for (const r of (scene.readings || [])) {
         if (!r.intents) continue;
         for (let i = 0; i < r.intents.length; i++) {
@@ -1693,14 +1703,12 @@ function rebuildIntentEditor() {
     });
   });
 
-  // Remove intent card listeners
   el.querySelectorAll("[data-action='remove-intent-card']").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const name = e.target.dataset.intent;
       const usageReadings = getIntentUsageReadings(name);
       if (usageReadings.length > 0) {
         if (!confirm(`"${name}" is used by ${usageReadings.length} reading(s): ${usageReadings.join(", ")}. Remove it and all references?`)) return;
-        // Remove references from readings
         for (const r of (scene.readings || [])) {
           if (!r.intents) continue;
           r.intents = r.intents.filter(intent => {
@@ -1715,7 +1723,6 @@ function rebuildIntentEditor() {
     });
   });
 
-  // Add intent standalone button
   el.querySelector("[data-action='add-intent-standalone']").addEventListener("click", onAddIntentStandalone);
 }
 
@@ -1821,26 +1828,24 @@ function saveSceneAs() {
 }
 
 function revertScene() {
-  // Ask runtime to reload from disk — the response arrives as a "scene" message
   send({ type: "reloadScene" });
   const btn = document.getElementById("revert-btn");
   btn.classList.add("flash");
   btn.textContent = "Reverted!";
   setTimeout(() => {
     btn.classList.remove("flash");
-    btn.textContent = "Revert to Saved";
+    btn.textContent = "Revert";
   }, 1200);
 }
 
 function saveScene() {
   send({ type: "saveScene" });
-  savedScene = JSON.parse(JSON.stringify(scene));
   const btn = document.getElementById("save-btn");
   btn.classList.add("flash");
   btn.textContent = "Saved!";
   setTimeout(() => {
     btn.classList.remove("flash");
-    btn.textContent = "Save Scene";
+    btn.textContent = "Save";
   }, 1200);
 }
 
