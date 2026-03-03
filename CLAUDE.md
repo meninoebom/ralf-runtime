@@ -130,7 +130,10 @@ Changes send `updateScene` patch via WS — applied immediately without resettin
 - `getScene` — request full scene config (populates editor)
 - `getManifest` — request translator action manifest
 - `updateScene { patch }` — hot-reload scene properties
-- `saveScene` — write current scene to disk
+- `saveScene` — write current scene to disk (stamps version, embeds manifest)
+- `saveSceneAs { name }` — clone current scene under a new name
+- `switchScene { name }` — load a different scene from disk by name
+- `listScenes` — list available scene files (returns `sceneList` with names)
 - `reloadScene` — reload scene from disk and broadcast to all clients
 
 **Key gotcha**: `scene.intents[name]` can be `IntentOption[]` or `IntentPoolConfig {pool, deterministic?}`. The console normalizes to `IntentPoolConfig` on load.
@@ -172,8 +175,10 @@ Unknown quality names are silently ignored.
 
 **Phase 8 (Trajectory) — COMPLETE.** Windowed linear regression slope as optional reading gate. Tests (8 trajectory + 5 validator = 90 total), slope exposed in state broadcasts, console UI for trajectory config (window/above/below), live slope display in dashboard and editor with ↑/↓/→ arrows.
 
+**Phase 9 (Scene Library) — COMPLETE.** Scene picker dropdown in console, Save As, switch between scenes. Every save stamps `version: 1` and embeds translator manifest as `_manifest` for portability. New WS commands: listScenes, saveSceneAs, switchScene. Crowd mode tested end-to-end with 4 phones via ngrok.
+
 **Next priorities:**
-- Scene library — save/load/share scene configs
+- First real rehearsal with dancer — iterate on scene design with sustained movement data
 
 ## After Completing Work
 
