@@ -20,7 +20,7 @@ src/
 │   ├── recognize.ts      # Gesture cooldown/deduplication (per-dancer instances)
 │   ├── accumulate.ts     # Windowed rate, total count, or duration tracking
 │   ├── combine.ts        # Weighted quality mix + gate → ReadingValue
-│   ├── roll.ts           # Weighted random selection from intent pool (deterministic in learning mode)
+│   ├── draw.ts           # Weighted random selection from intent pool (deterministic in learning mode)
 │   ├── gate.ts           # Condition evaluation with hysteresis (Schmitt trigger)
 │   ├── act.ts            # Converts IntentOption → /ralf/act/trigger/* or /ralf/act/set/* OSC message
 │   ├── delay.ts          # Time-offsets a signal (post-Burn)
@@ -97,48 +97,22 @@ Use judgment to plan appropriately for the task:
 ## Code Quality
 
 - Write tests first when possible. Prefer test-driven development.
-- Run quality checks before committing: `npx tsc --noEmit && npx vitest run`
+- Run quality checks before committing: `bun run typecheck && bun test`
 - Keep commits focused — one logical change per commit.
 - Tests use `runtime.tick()` for deterministic frame evaluation — never `setTimeout`.
 
 ## Commands
 
 ```bash
-npm run dev    # Start with hot-reload (tsx watch)
-npm run build  # Compile TypeScript
-npm test       # Run tests (vitest)
+bun run dev        # Start with hot-reload
+bun run start      # Start without watch
+bun run typecheck  # tsc --noEmit
+bun test           # Run tests (vitest)
 ```
 
 ## Performance Console
 
-The console is a single HTML file (`console/index.html`) served by the runtime on `:3300` (`RALF_CONSOLE_PORT`).
-
-**Layout**: Composer-first design. The scene editor (Readings + Intents) is the main view — always visible, no toggle. Monitoring lives in a fixed bottom signal strip with per-dancer dots (green=active, amber=stale, grey=no data) and an acts rate counter. Click any dancer dot to expand quality bars inline upward. Click acts to expand the scrolling log. Save/Revert/Save As buttons in the header bar. WS URL hidden behind gear icon.
-
-**Signal strip performance**: Strip HTML only rebuilds when dancers join/leave or expand state changes. Value updates (dot colors, bar widths, act rate) happen in-place via querySelector/textContent to preserve scroll position and interaction state in expanded panels.
-
-**Resilience**: Auto-reconnect with exponential backoff (1s→2s→4s→8s→15s max). Amber "stale" badge when no state update for 3s. Client-side heartbeat pings every 10s, force-closes after 15s no response.
-
-**Scene Editor**: Two sections mirroring the data model:
-- **Readings section**: Left-to-right card layout per reading. Left column (Qualities): mix weight sliders, gate thresholds, live values. Right column (Intents): wired intent names as clickable links (scroll to intent section), one-shot/continuous mode toggle, per-wire thresholds. Add/remove readings, add/remove qualities.
-- **Intents section**: Each intent card shows action pool with manifest-driven action picker, weight sliders (shown as percentages), args from manifest schema, deterministic toggle. Back-reference badges show which readings use each intent.
-
-Changes send `updateScene` patch via WS — applied immediately without resetting calibration. Save persists to disk. Revert reloads from disk (not in-memory snapshot).
-
-**Translator manifest**: `translators/<type>/manifest.json` declares supported actions with type, description, and args schema. Served via `getManifest` WS command. Populates action picker dropdowns in the editor.
-
-**WebSocket commands** (console → runtime):
-- `getState` — request current state snapshot
-- `getScene` — request full scene config (populates editor)
-- `getManifest` — request translator action manifest
-- `updateScene { patch }` — hot-reload scene properties
-- `saveScene` — write current scene to disk (stamps version, embeds manifest)
-- `saveSceneAs { name }` — clone current scene under a new name
-- `switchScene { name }` — load a different scene from disk by name
-- `listScenes` — list available scene files (returns `sceneList` with names)
-- `reloadScene` — reload scene from disk and broadcast to all clients
-
-**Key gotcha**: `scene.intents[name]` can be `IntentOption[]` or `IntentPoolConfig {pool, deterministic?}`. The console normalizes to `IntentPoolConfig` on load.
+Live dashboard + scene editor served on `:3300`. See `docs/performance-console.md` for layout details, WebSocket commands, and signal strip architecture.
 
 ## OSC Protocol
 
@@ -163,26 +137,9 @@ Unknown quality names are silently ignored.
 
 ## Build Status
 
-**Phase 2 — COMPLETE.** All 16 build targets done (71 tests passing).
+Phases 2-10 complete (90 tests). See `docs/build-status.md` for detailed phase history.
 
-**Phase 3 (Integration) — COMPLETE.** End-to-end pipeline working: MediaPipe → adapter → runtime → translator → sound.
-
-**Phase 4 (Console) — COMPLETE.** Performance Console + Scene Editor at :3300. Live dashboard, real-time scene editing, save to disk.
-
-**Phase 5 (Crowd Mode) — INTEGRATION TESTED.** Relational qualities (synchrony, contrast, aggregate_energy) computed across dancer pairs. Virtual `_crowd` dancer auto-created when >1 dancer active. IMU adapter accepts phones/wristbands over WebSocket on :3400. Tested end-to-end with 2 phones via ngrok.
-
-**Phase 6 (Scene Editor) — COMPLETE.** Full composition tool: add/remove readings, qualities, intents, and actions. Manifest-driven action picker. Two-section layout (Readings + Intents) mirrors data model. Reading name editing, revert-from-disk, dashboard dedup. 78 tests passing.
-
-**Phase 7 (Hardening) — COMPLETE.** Smart launcher kills stale processes on all 7 ports before start. Runtime: SIGTERM handler, uncaughtException/unhandledRejection safety nets, port binding error messages, tick loop error boundary (log + skip frame). WebSocket heartbeat pings clients every 10s, terminates after 15s. Console: exponential backoff reconnect, stale-state indicator, client-side heartbeat, stale dancer styling. State broadcasts include `stale` flag per dancer.
-
-**Phase 8 (Trajectory) — COMPLETE.** Windowed linear regression slope as optional reading gate. Tests (8 trajectory + 5 validator = 90 total), slope exposed in state broadcasts, console UI for trajectory config (window/above/below), live slope display in dashboard and editor with ↑/↓/→ arrows.
-
-**Phase 9 (Scene Library) — COMPLETE.** Scene picker dropdown in console, Save As, switch between scenes. Every save stamps `version: 1` and embeds translator manifest as `_manifest` for portability. New WS commands: listScenes, saveSceneAs, switchScene. Crowd mode tested end-to-end with 4 phones via ngrok.
-
-**Phase 10 (Console UX) — COMPLETE.** Composer-first layout: editor is the main view (no toggle), monitoring moved to fixed bottom signal strip. Per-dancer dots (green/amber/grey), inline-expandable quality bars and acts log. Save/Revert/Save As in header. Signal strip uses dirty-flag pattern for performance (rebuild HTML only on structure changes, in-place updates every frame).
-
-**Next priorities:**
-- First real rehearsal with dancer — iterate on scene design with sustained movement data
+**Next:** First real rehearsal with dancer — iterate on scene design with sustained movement data.
 
 ## After Completing Work
 

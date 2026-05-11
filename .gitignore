@@ -1,3 +1,9 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# This is a Bun project — bun.lock is the lockfile. Block npm/yarn/pnpm
+# artifacts so a stray `npm install` can't drift the dep tree.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
