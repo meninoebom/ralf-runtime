@@ -25,7 +25,7 @@ const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
-  "synchrony", "contrast", "aggregate_energy",
+  "synchrony", "contrast", "aggregate_velocity",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -179,7 +179,7 @@ export class Runtime {
       }
       crowd.qualities.synchrony = relational.synchrony;
       crowd.qualities.contrast = relational.contrast;
-      crowd.qualities.aggregate_energy = relational.aggregate_energy;
+      crowd.qualities.aggregate_velocity = relational.aggregate_velocity;
     } else {
       this.dancers.delete("_crowd");
     }

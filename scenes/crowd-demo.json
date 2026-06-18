@@ -31,8 +31,8 @@
     },
     {
       "id": "crowd-energy",
-      "mix": { "aggregate_energy": 1.0 },
-      "gate": { "aggregate_energy": { "above": 0.5 } },
+      "mix": { "aggregate_velocity": 1.0 },
+      "gate": { "aggregate_velocity": { "above": 0.5 } },
       "intents": ["group_energy"]
     },
     {

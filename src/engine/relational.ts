@@ -1,9 +1,9 @@
 import type { DancerState, QualityName } from "../types.js";
 
 export interface RelationalQualities {
-  synchrony: number;        // 0-1, mean pairwise velocity correlation
-  contrast: number;         // 0-1, mean pairwise quality distance
-  aggregate_energy: number; // 0-1, mean velocity across all dancers
+  synchrony: number;          // 0-1, mean pairwise velocity correlation
+  contrast: number;           // 0-1, mean pairwise quality distance
+  aggregate_velocity: number; // 0-1, mean velocity across all dancers
 }
 
 function pearson(a: number[], b: number[]): number {
@@ -35,7 +35,7 @@ export function computeRelational(
   windowSize: number = 20,
 ): RelationalQualities {
   const ids = [...dancers.keys()].filter(id => !id.startsWith("_"));
-  if (ids.length < 2) return { synchrony: 0, contrast: 0, aggregate_energy: 0 };
+  if (ids.length < 2) return { synchrony: 0, contrast: 0, aggregate_velocity: 0 };
 
   // Synchrony: mean pairwise Pearson correlation of velocity histories
   let syncSum = 0, syncCount = 0;
@@ -47,8 +47,10 @@ export function computeRelational(
         const a = ha.slice(-windowSize);
         const b = hb.slice(-windowSize);
         syncSum += Math.max(0, pearson(a, b));
+        // Count only pairs that contributed, so the divisor matches the
+        // numerator. Pairs lacking history enter neither (audit finding 6).
+        syncCount++;
       }
-      syncCount++;
     }
   }
   const synchrony = syncCount > 0 ? syncSum / syncCount : 0;
@@ -70,12 +72,14 @@ export function computeRelational(
   }
   const contrast = contrastCount > 0 ? contrastSum / contrastCount : 0;
 
-  // Aggregate energy: mean velocity
-  let energySum = 0;
+  // Aggregate velocity: mean of each dancer's velocity quality. (Named
+  // aggregate_velocity, not aggregate_energy: it aggregates the velocity
+  // quality, and `energy` is a distinct quality — audit finding 7.)
+  let velocitySum = 0;
   for (const id of ids) {
-    energySum += dancers.get(id)!.qualities.velocity;
+    velocitySum += dancers.get(id)!.qualities.velocity;
   }
-  const aggregate_energy = energySum / ids.length;
+  const aggregate_velocity = velocitySum / ids.length;
 
-  return { synchrony, contrast, aggregate_energy };
+  return { synchrony, contrast, aggregate_velocity };
 }

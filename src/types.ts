@@ -113,7 +113,7 @@ export type QualityName =
   | "groundedness"
   | "synchrony"
   | "contrast"
-  | "aggregate_energy";
+  | "aggregate_velocity";
 
 export interface DancerState {
   id: string;

@@ -12,7 +12,7 @@ src/
 ├── index.ts              # Entry point — wires OSC, WebSocket, and Runtime together
 ├── engine/
 │   ├── runtime.ts        # The tick loop: evaluates readings, resolves intents with edge detection
-│   └── relational.ts     # Cross-dancer qualities: synchrony, contrast, aggregate_energy
+│   └── relational.ts     # Cross-dancer qualities: synchrony, contrast, aggregate_velocity
 ├── primitives/
 │   ├── adaptive-range.ts # Self-calibrating 0-1 normalizer (ported from States of Being)
 │   ├── sense.ts          # Wraps AdaptiveRange per quality per dancer
@@ -80,7 +80,7 @@ Optional gate on readings that filters by direction of change. Computed as windo
 When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtual dancer with three qualities:
 - **synchrony**: mean pairwise Pearson correlation of velocity histories (20-frame window). Only rewards positive correlation (negative clamped to 0).
 - **contrast**: mean pairwise L2 distance of quality vectors, normalized by sqrt(numQualities).
-- **aggregate_energy**: mean velocity across all active dancers.
+- **aggregate_velocity**: mean velocity across all active dancers.
 
 Scene readings can target `_crowd` like any dancer. The `_crowd` dancer is deleted when ≤1 real dancer remains. Relational computation happens after staleness decay but before readings evaluation.
 
