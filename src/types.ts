@@ -118,6 +118,7 @@ export type QualityName =
   | "fragmentation"
   | "energy_spread"
   | "field_intensity"
+  | "convergence"
   | "contrast"
   | "aggregate_energy";
 

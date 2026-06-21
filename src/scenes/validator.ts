@@ -10,7 +10,7 @@ const VALID_QUALITIES = new Set([
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
   "cohesion", "synchrony", "dissent", "unison", "fragmentation",
-  "energy_spread", "field_intensity", "contrast", "aggregate_energy",
+  "energy_spread", "field_intensity", "convergence", "contrast", "aggregate_energy",
 ]);
 
 function getPool(entry: unknown): { pool: unknown[]; deterministic?: boolean } | null {

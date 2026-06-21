@@ -85,6 +85,7 @@ When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtua
 - **fragmentation** (0..1): largest gap in sorted velocity projections. Detects the group splitting into sub-groups.
 - **energy_spread** (0..1): stddev of velocity. Distinguishes "all medium" from "half still, half wild" at the same `field_intensity`.
 - **field_intensity** (0..1): mean velocity (room loudness). Validator-restricted — may not gate a reward action alone (monotonic; a dominator can raise it).
+- **convergence** (0..1, 0.5=steady): slope of `|cohesion|` over time. Above 0.5 = group coming into relation; below 0.5 = separating. Reuses `linearRegressionSlope` from `relational.ts`.
 - **contrast** (0..1): mean pairwise L2 distance, O(n²). Kept for backwards compat; `1 − unison` is the O(n) equivalent.
 - **aggregate_energy** (0..1): mean velocity for now; becomes `min` (shared floor) in step 5.
 

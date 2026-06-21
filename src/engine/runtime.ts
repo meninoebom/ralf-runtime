@@ -19,14 +19,14 @@ import { Recognize } from "../primitives/recognize.js";
 import { combine } from "../primitives/combine.js";
 import { draw } from "../primitives/draw.js";
 import { act } from "../primitives/act.js";
-import { computeRelational } from "./relational.js";
+import { computeRelational, linearRegressionSlope } from "./relational.js";
 
 const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
   "cohesion", "synchrony", "dissent", "unison", "fragmentation",
-  "energy_spread", "field_intensity", "contrast", "aggregate_energy",
+  "energy_spread", "field_intensity", "convergence", "contrast", "aggregate_energy",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -61,6 +61,7 @@ export class Runtime {
   private dancerMeta = new Map<string, DancerMeta>();
   private lastEmitted = new Map<string, number>(); // act address -> last value (for deadband)
   private velocityHistories = new Map<string, number[]>();
+  private cohesionHistory: number[] = [];
   private readonly RELATIONAL_WINDOW = 20;
   private interval: ReturnType<typeof setInterval> | null = null;
   private _tick = 0;
@@ -165,6 +166,7 @@ export class Runtime {
       const relational = computeRelational(
         this.dancers,
         this.velocityHistories,
+        this.cohesionHistory,
         this.RELATIONAL_WINDOW,
       );
 
@@ -185,6 +187,7 @@ export class Runtime {
       crowd.qualities.fragmentation = relational.fragmentation;
       crowd.qualities.energy_spread = relational.energy_spread;
       crowd.qualities.field_intensity = relational.field_intensity;
+      crowd.qualities.convergence = relational.convergence;
       crowd.qualities.contrast = relational.contrast;
       crowd.qualities.aggregate_energy = relational.aggregate_energy;
     } else {
@@ -215,16 +218,7 @@ export class Runtime {
             if (buf.length > window) buf.splice(0, buf.length - window);
 
             if (buf.length >= 2) {
-              // Linear regression slope
-              const n = buf.length;
-              let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-              for (let i = 0; i < n; i++) {
-                sumX += i;
-                sumY += buf[i];
-                sumXY += i * buf[i];
-                sumX2 += i * i;
-              }
-              const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+              const slope = linearRegressionSlope(buf);
 
               reading.slope = slope;
 

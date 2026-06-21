@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeRelational } from "../src/engine/relational.js";
+import { computeRelational, linearRegressionSlope } from "../src/engine/relational.js";
 import type { DancerState, QualityName } from "../src/types.js";
 
 function makeDancer(id: string, velocity = 0.5): DancerState {
@@ -11,7 +11,7 @@ function makeDancer(id: string, velocity = 0.5): DancerState {
       verticality: 0, heading: 0, stillness: 0, periodicity: 0,
       groundedness: 0, cohesion: 0, synchrony: 0, dissent: 0,
       unison: 0, fragmentation: 0, energy_spread: 0,
-      field_intensity: 0, contrast: 0, aggregate_energy: 0,
+      field_intensity: 0, convergence: 0.5, contrast: 0, aggregate_energy: 0,
     },
     lastGesture: null,
     lastGestureTime: 0,
@@ -29,14 +29,14 @@ describe("cohesion (mean-field, leave-one-out)", () => {
   it("is +1 when all dancers move together", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.cohesion).toBeCloseTo(1.0, 2);
   });
 
   it("is negative when dancers are anti-correlated (the key step-1 change)", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", FALLING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.cohesion).toBeLessThan(0);
     expect(r.cohesion).toBeCloseTo(-1.0, 2);
   });
@@ -44,14 +44,14 @@ describe("cohesion (mean-field, leave-one-out)", () => {
   it("is 0 when histories have no variance", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", FLAT], ["d2", FLAT]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.cohesion).toBe(0);
   });
 
   it("is 0 and synchrony is 0 when fewer than 2 dancers", () => {
     const dancers = new Map([["d1", makeDancer("d1")]]);
     const histories = new Map([["d1", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.cohesion).toBe(0);
     expect(r.synchrony).toBe(0);
   });
@@ -63,14 +63,14 @@ describe("synchrony (deprecated clamped alias)", () => {
   it("matches cohesion for positive correlation", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.synchrony).toBeCloseTo(r.cohesion, 5);
   });
 
   it("is 0 when cohesion is negative (anti-phase reads as 0 to old scenes)", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", FALLING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.synchrony).toBe(0);
     expect(r.cohesion).toBeLessThan(0);
   });
@@ -82,7 +82,7 @@ describe("dissent", () => {
   it("is 0 when all dancers move together", () => {
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.dissent).toBe(0);
   });
 
@@ -91,7 +91,7 @@ describe("dissent", () => {
     const dancers = new Map([["d1", d1], ["d2", d2], ["d3", d3]]);
     // d1 and d2 rise together, d3 falls against them
     const histories = new Map([["d1", RISING], ["d2", RISING], ["d3", FALLING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.dissent).toBeGreaterThan(0);
   });
 
@@ -99,7 +99,7 @@ describe("dissent", () => {
     // With just 2 dancers perfectly anti-correlated, both read against each other's field
     const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
     const histories = new Map([["d1", RISING], ["d2", FALLING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.dissent).toBe(1.0);
   });
 });
@@ -111,7 +111,7 @@ describe("unison", () => {
     const d1 = makeDancer("d1", 0.6); const d2 = makeDancer("d2", 0.6);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.unison).toBeCloseTo(1.0, 5);
   });
 
@@ -119,7 +119,7 @@ describe("unison", () => {
     const d1 = makeDancer("d1", 0.1); const d2 = makeDancer("d2", 0.9);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.unison).toBeLessThan(1.0);
   });
 });
@@ -131,7 +131,7 @@ describe("fragmentation", () => {
     const d1 = makeDancer("d1", 0.5); const d2 = makeDancer("d2", 0.5);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.fragmentation).toBe(0);
   });
 
@@ -139,7 +139,7 @@ describe("fragmentation", () => {
     const d1 = makeDancer("d1", 0.0); const d2 = makeDancer("d2", 1.0);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.fragmentation).toBeCloseTo(1.0, 5);
   });
 
@@ -148,7 +148,7 @@ describe("fragmentation", () => {
     const d1 = makeDancer("d1", 0.1); const d2 = makeDancer("d2", 0.2); const d3 = makeDancer("d3", 0.9);
     const dancers = new Map([["d1", d1], ["d2", d2], ["d3", d3]]);
     const histories = new Map([["d1", RISING], ["d2", RISING], ["d3", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.fragmentation).toBeCloseTo(0.7 / 0.8, 5);
   });
 });
@@ -160,7 +160,7 @@ describe("energy_spread and field_intensity", () => {
     const d1 = makeDancer("d1", 0.2); const d2 = makeDancer("d2", 0.8);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.field_intensity).toBeCloseTo(0.5, 5);
   });
 
@@ -168,7 +168,7 @@ describe("energy_spread and field_intensity", () => {
     const d1 = makeDancer("d1", 0.5); const d2 = makeDancer("d2", 0.5);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.energy_spread).toBeCloseTo(0, 5);
   });
 
@@ -178,8 +178,8 @@ describe("energy_spread and field_intensity", () => {
     const near = new Map([["d1", d1near], ["d2", d2near]]);
     const far  = new Map([["d3", d1far],  ["d4", d2far]]);
     const h = new Map([["d1", RISING], ["d2", RISING], ["d3", RISING], ["d4", RISING]]);
-    const rNear = computeRelational(near, h);
-    const rFar  = computeRelational(far, h);
+    const rNear = computeRelational(near, h, []);
+    const rFar  = computeRelational(far, h, []);
     expect(rFar.energy_spread).toBeGreaterThan(rNear.energy_spread);
   });
 });
@@ -191,7 +191,76 @@ describe("aggregate_energy", () => {
     const d1 = makeDancer("d1", 0.3); const d2 = makeDancer("d2", 0.7);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories);
+    const r = computeRelational(dancers, histories, []);
     expect(r.aggregate_energy).toBeCloseTo(r.field_intensity, 5);
+  });
+});
+
+// --- linearRegressionSlope ---
+
+describe("linearRegressionSlope", () => {
+  it("returns positive slope for rising series", () => {
+    expect(linearRegressionSlope([1, 2, 3, 4, 5])).toBeGreaterThan(0);
+  });
+
+  it("returns negative slope for falling series", () => {
+    expect(linearRegressionSlope([5, 4, 3, 2, 1])).toBeLessThan(0);
+  });
+
+  it("returns 0 for flat series", () => {
+    expect(linearRegressionSlope([3, 3, 3, 3, 3])).toBeCloseTo(0, 5);
+  });
+
+  it("returns 0 for fewer than 2 values", () => {
+    expect(linearRegressionSlope([])).toBe(0);
+    expect(linearRegressionSlope([1])).toBe(0);
+  });
+});
+
+// --- convergence ---
+
+describe("convergence", () => {
+  it("returns 0.5 when fewer than 2 dancers (steady / no relationship yet)", () => {
+    const dancers = new Map([["d1", makeDancer("d1")]]);
+    const r = computeRelational(dancers, new Map([["d1", RISING]]), []);
+    expect(r.convergence).toBe(0.5);
+  });
+
+  it("returns 0.5 when |cohesion| history is flat", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const histories = new Map([["d1", RISING], ["d2", RISING]]);
+    // Seed the buffer with a flat history of |cohesion| ≈ 1
+    const buf = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    const r = computeRelational(dancers, histories, buf);
+    // Slope is ~0, so convergence should be near 0.5
+    expect(r.convergence).toBeCloseTo(0.5, 1);
+  });
+
+  it("returns above 0.5 when |cohesion| has been rising (dancers coming together)", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const histories = new Map([["d1", RISING], ["d2", RISING]]);
+    // Seed buffer with a rising series so the slope is clearly positive
+    const buf = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+    const r = computeRelational(dancers, histories, buf);
+    expect(r.convergence).toBeGreaterThan(0.5);
+  });
+
+  it("returns below 0.5 when |cohesion| has been falling (dancers separating)", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const histories = new Map([["d1", RISING], ["d2", FALLING]]);
+    // Seed buffer with falling series so the slope is clearly negative
+    const buf = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0];
+    const r = computeRelational(dancers, histories, buf);
+    expect(r.convergence).toBeLessThan(0.5);
+  });
+
+  it("stays in 0..1 even when slope is extreme", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const histories = new Map([["d1", RISING], ["d2", RISING]]);
+    // Extreme rising slope
+    const buf = [0, 0, 0, 0, 0, 0, 0, 0, 0, 100];
+    const r = computeRelational(dancers, histories, buf);
+    expect(r.convergence).toBeLessThanOrEqual(1.0);
+    expect(r.convergence).toBeGreaterThanOrEqual(0.0);
   });
 });
