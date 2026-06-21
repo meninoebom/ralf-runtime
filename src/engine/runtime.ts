@@ -25,7 +25,8 @@ const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
-  "cohesion", "synchrony", "contrast", "aggregate_energy",
+  "cohesion", "synchrony", "dissent", "unison", "fragmentation",
+  "energy_spread", "field_intensity", "contrast", "aggregate_energy",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -179,6 +180,11 @@ export class Runtime {
       }
       crowd.qualities.cohesion = relational.cohesion;
       crowd.qualities.synchrony = relational.synchrony; // deprecated alias, remove after crowd-demo migrates
+      crowd.qualities.dissent = relational.dissent;
+      crowd.qualities.unison = relational.unison;
+      crowd.qualities.fragmentation = relational.fragmentation;
+      crowd.qualities.energy_spread = relational.energy_spread;
+      crowd.qualities.field_intensity = relational.field_intensity;
       crowd.qualities.contrast = relational.contrast;
       crowd.qualities.aggregate_energy = relational.aggregate_energy;
     } else {

@@ -113,6 +113,11 @@ export type QualityName =
   | "groundedness"
   | "cohesion"
   | "synchrony"
+  | "dissent"
+  | "unison"
+  | "fragmentation"
+  | "energy_spread"
+  | "field_intensity"
   | "contrast"
   | "aggregate_energy";
 
