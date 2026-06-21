@@ -17,7 +17,7 @@ import { Sense } from "../primitives/sense.js";
 import { Smooth } from "../primitives/smooth.js";
 import { Recognize } from "../primitives/recognize.js";
 import { combine } from "../primitives/combine.js";
-import { roll } from "../primitives/roll.js";
+import { draw } from "../primitives/draw.js";
 import { act } from "../primitives/act.js";
 import { computeRelational } from "./relational.js";
 
@@ -25,7 +25,7 @@ const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
-  "synchrony", "contrast", "aggregate_energy",
+  "cohesion", "synchrony", "contrast", "aggregate_energy",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -177,7 +177,8 @@ export class Runtime {
         };
         this.dancers.set("_crowd", crowd);
       }
-      crowd.qualities.synchrony = relational.synchrony;
+      crowd.qualities.cohesion = relational.cohesion;
+      crowd.qualities.synchrony = relational.synchrony; // deprecated alias, remove after crowd-demo migrates
       crowd.qualities.contrast = relational.contrast;
       crowd.qualities.aggregate_energy = relational.aggregate_energy;
     } else {
@@ -336,7 +337,7 @@ export class Runtime {
 
     if (pool.length === 0) return;
 
-    const chosen = roll(pool, deterministic);
+    const chosen = draw(pool, deterministic);
     if (!chosen) return;
 
     const msg = act(chosen, reading.value);

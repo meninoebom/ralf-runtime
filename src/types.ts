@@ -111,6 +111,7 @@ export type QualityName =
   | "stillness"
   | "periodicity"
   | "groundedness"
+  | "cohesion"
   | "synchrony"
   | "contrast"
   | "aggregate_energy";

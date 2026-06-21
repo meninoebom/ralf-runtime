@@ -1,7 +1,9 @@
 import type { DancerState, QualityName } from "../types.js";
 
 export interface RelationalQualities {
-  synchrony: number;        // 0-1, mean pairwise velocity correlation
+  cohesion: number;         // −1..1, mean pairwise velocity correlation (signed; negative = anti-phase)
+  /** @deprecated Use `cohesion`. Clamped alias kept for one release so existing scenes still work. */
+  synchrony: number;        // 0-1, max(0, cohesion)
   contrast: number;         // 0-1, mean pairwise quality distance
   aggregate_energy: number; // 0-1, mean velocity across all dancers
 }
@@ -35,7 +37,7 @@ export function computeRelational(
   windowSize: number = 20,
 ): RelationalQualities {
   const ids = [...dancers.keys()].filter(id => !id.startsWith("_"));
-  if (ids.length < 2) return { synchrony: 0, contrast: 0, aggregate_energy: 0 };
+  if (ids.length < 2) return { cohesion: 0, synchrony: 0, contrast: 0, aggregate_energy: 0 };
 
   // Synchrony: mean pairwise Pearson correlation of velocity histories
   let syncSum = 0, syncCount = 0;
@@ -46,12 +48,13 @@ export function computeRelational(
       if (ha && hb && ha.length >= 2 && hb.length >= 2) {
         const a = ha.slice(-windowSize);
         const b = hb.slice(-windowSize);
-        syncSum += Math.max(0, pearson(a, b));
+        syncSum += pearson(a, b);
       }
       syncCount++;
     }
   }
-  const synchrony = syncCount > 0 ? syncSum / syncCount : 0;
+  const cohesion = syncCount > 0 ? syncSum / syncCount : 0;
+  const synchrony = Math.max(0, cohesion);
 
   // Contrast: mean pairwise L2 distance of quality vectors
   let contrastSum = 0, contrastCount = 0;
@@ -77,5 +80,5 @@ export function computeRelational(
   }
   const aggregate_energy = energySum / ids.length;
 
-  return { synchrony, contrast, aggregate_energy };
+  return { cohesion, synchrony, contrast, aggregate_energy };
 }

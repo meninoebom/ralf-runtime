@@ -78,7 +78,8 @@ Optional gate on readings that filters by direction of change. Computed as windo
 
 ### Relational qualities (crowd mode)
 When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtual dancer with three qualities:
-- **synchrony**: mean pairwise Pearson correlation of velocity histories (20-frame window). Only rewards positive correlation (negative clamped to 0).
+- **cohesion**: mean pairwise Pearson correlation of velocity histories (20-frame window). **Signed (−1..1)** — negative means deliberate anti-phase (counterpoint), not absence of relationship.
+- **synchrony**: deprecated alias for `max(0, cohesion)`. Kept for one release so existing scenes still work. Migrate to `cohesion`.
 - **contrast**: mean pairwise L2 distance of quality vectors, normalized by sqrt(numQualities).
 - **aggregate_energy**: mean velocity across all active dancers.
 
