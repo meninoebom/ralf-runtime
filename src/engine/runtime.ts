@@ -19,14 +19,14 @@ import { Recognize } from "../primitives/recognize.js";
 import { combine } from "../primitives/combine.js";
 import { draw } from "../primitives/draw.js";
 import { act } from "../primitives/act.js";
-import { computeRelational, linearRegressionSlope } from "./relational.js";
+import { computeRelational, linearRegressionSlope, type RelationalResult } from "./relational.js";
 
 const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
   "cohesion", "synchrony", "dissent", "unison", "fragmentation",
-  "energy_spread", "field_intensity", "convergence", "contrast", "aggregate_energy",
+  "energy_spread", "field_intensity", "convergence", "lead_strength", "contrast", "aggregate_energy",
 ];
 
 const VALID_QUALITIES = new Set<string>(ALL_QUALITIES);
@@ -63,6 +63,11 @@ export class Runtime {
   private velocityHistories = new Map<string, number[]>();
   private cohesionHistory: number[] = [];
   private readonly RELATIONAL_WINDOW = 20;
+  // lead_id hysteresis: leadership only transfers when a new candidate leads for ≥10 frames
+  private _leadId: string | null = null;
+  private _leadChallenger: { id: string; frames: number } | null = null;
+  private readonly LEAD_HYSTERESIS_MARGIN = 0.1;
+  private readonly LEAD_HYSTERESIS_FRAMES = 10;
   private interval: ReturnType<typeof setInterval> | null = null;
   private _tick = 0;
   private _translatorState: TranslatorState = { tempo: 120, playing: false, scene: 0 };
@@ -188,72 +193,58 @@ export class Runtime {
       crowd.qualities.energy_spread = relational.energy_spread;
       crowd.qualities.field_intensity = relational.field_intensity;
       crowd.qualities.convergence = relational.convergence;
+      crowd.qualities.lead_strength = relational.lead_strength;
       crowd.qualities.contrast = relational.contrast;
       crowd.qualities.aggregate_energy = relational.aggregate_energy;
+
+      // lead_id hysteresis: only transfer leadership after ≥10 consecutive frames
+      this._leadId = this.applyLeadHysteresis(relational);
+      crowd.meta = {
+        lead_id: this._leadId ?? "",
+        max_dissent_id: relational.maxDissentId ?? "",
+      };
     } else {
       this.dancers.delete("_crowd");
+      this._leadId = null;
+      this._leadChallenger = null;
     }
 
     const allReadings: ReadingValue[] = [];
+    const crowd = this.dancers.get("_crowd");
 
     for (const dancer of this.dancers.values()) {
       const hState = this.hysteresisState.get(dancer.id) ?? new Map();
       this.hysteresisState.set(dancer.id, hState);
 
       for (const readingConfig of this.scene.readings) {
-        const reading = combine(readingConfig, dancer.qualities, hState, hysteresisBand);
+        const scope = readingConfig.scope;
 
-        // Trajectory gating
-        if (readingConfig.trajectory) {
-          const trajKey = readingConfig.id;
-          const meta = this.dancerMeta.get(dancer.id);
-          if (meta) {
-            let buf = meta.trajectoryBuffers.get(trajKey);
-            if (!buf) {
-              buf = [];
-              meta.trajectoryBuffers.set(trajKey, buf);
-            }
-            buf.push(reading.value);
-            const window = readingConfig.trajectory.window;
-            if (buf.length > window) buf.splice(0, buf.length - window);
+        // scope routing:
+        //   undefined / "per_dancer" → real dancers only (skip _crowd)
+        //   "crowd"                  → _crowd only (handled in the crowd pass below)
+        //   "broadcast"              → _crowd only (handled in the crowd pass below)
+        if (dancer.id === "_crowd") continue;
+        if (scope === "crowd" || scope === "broadcast") continue;
 
-            if (buf.length >= 2) {
-              const slope = linearRegressionSlope(buf);
+        this.evaluateReading(dancer, readingConfig, hState, hysteresisBand, allReadings);
+      }
+    }
 
-              reading.slope = slope;
+    // crowd + broadcast pass: evaluate once against _crowd
+    if (crowd) {
+      const hState = this.hysteresisState.get("_crowd") ?? new Map();
+      this.hysteresisState.set("_crowd", hState);
 
-              // Apply trajectory gate
-              let trajActive = true;
-              if (readingConfig.trajectory.above !== undefined && slope < readingConfig.trajectory.above)
-                trajActive = false;
-              if (readingConfig.trajectory.below !== undefined && slope > readingConfig.trajectory.below)
-                trajActive = false;
+      for (const readingConfig of this.scene.readings) {
+        const scope = readingConfig.scope;
+        if (scope !== "crowd" && scope !== "broadcast") continue;
 
-              if (!trajActive) reading.active = false;
-            } else {
-              reading.active = false; // not enough data yet
-            }
-          }
-        }
+        // For broadcast, determine which real dancer gets the intent context
+        const targetId = scope === "broadcast"
+          ? (crowd.meta?.lead_id || this.firstRealDancerId())
+          : "_crowd";
 
-        allReadings.push(reading);
-
-        const readingActiveKey = `${dancer.id}:${readingConfig.id}:__active__`;
-        const readingWasActive = this.edgeState.get(readingActiveKey) ?? false;
-        this.edgeState.set(readingActiveKey, reading.active);
-
-        if (reading.active) {
-          this.resolveIntents(dancer.id, readingConfig, reading);
-        } else {
-          // Fire on_exit intents on falling edge (active -> inactive)
-          if (readingWasActive && readingConfig.on_exit) {
-            for (const intentName of readingConfig.on_exit) {
-              this.fireIntent(intentName, reading);
-            }
-          }
-          // Mark all intent edges as inactive for this reading
-          this.clearEdges(dancer.id, readingConfig);
-        }
+        this.evaluateReading(crowd, readingConfig, hState, hysteresisBand, allReadings, targetId);
       }
     }
 
@@ -275,6 +266,87 @@ export class Runtime {
     } catch (err) {
       console.error("[runtime] tick error:", err);
       return;
+    }
+  }
+
+  private firstRealDancerId(): string {
+    for (const id of this.dancers.keys()) {
+      if (!id.startsWith("_")) return id;
+    }
+    return "_crowd";
+  }
+
+  private applyLeadHysteresis(relational: RelationalResult): string | null {
+    const candidate = relational.leadId;
+    if (!candidate) { this._leadChallenger = null; return this._leadId; }
+    if (candidate === this._leadId) { this._leadChallenger = null; return this._leadId; }
+
+    // New candidate must beat current leader by MARGIN for FRAMES consecutive ticks
+    if (this._leadChallenger?.id === candidate) {
+      this._leadChallenger.frames++;
+    } else {
+      this._leadChallenger = { id: candidate, frames: 1 };
+    }
+
+    if (this._leadChallenger.frames >= this.LEAD_HYSTERESIS_FRAMES) {
+      this._leadChallenger = null;
+      return candidate;
+    }
+    return this._leadId;
+  }
+
+  private evaluateReading(
+    dancer: DancerState,
+    readingConfig: ReadingConfig,
+    hState: HysteresisState,
+    hysteresisBand: number,
+    allReadings: ReadingValue[],
+    overrideDancerId?: string,  // broadcast: fire intents as this dancer
+  ) {
+    const effectiveDancerId = overrideDancerId ?? dancer.id;
+    const reading = combine(readingConfig, dancer.qualities, hState, hysteresisBand);
+
+    // Trajectory gating
+    if (readingConfig.trajectory) {
+      const trajKey = readingConfig.id;
+      const meta = this.dancerMeta.get(dancer.id);
+      if (meta) {
+        let buf = meta.trajectoryBuffers.get(trajKey);
+        if (!buf) { buf = []; meta.trajectoryBuffers.set(trajKey, buf); }
+        buf.push(reading.value);
+        const window = readingConfig.trajectory.window;
+        if (buf.length > window) buf.splice(0, buf.length - window);
+
+        if (buf.length >= 2) {
+          const slope = linearRegressionSlope(buf);
+          reading.slope = slope;
+          let trajActive = true;
+          if (readingConfig.trajectory.above !== undefined && slope < readingConfig.trajectory.above)
+            trajActive = false;
+          if (readingConfig.trajectory.below !== undefined && slope > readingConfig.trajectory.below)
+            trajActive = false;
+          if (!trajActive) reading.active = false;
+        } else {
+          reading.active = false;
+        }
+      }
+    }
+
+    allReadings.push(reading);
+
+    const readingActiveKey = `${effectiveDancerId}:${readingConfig.id}:__active__`;
+    const readingWasActive = this.edgeState.get(readingActiveKey) ?? false;
+    this.edgeState.set(readingActiveKey, reading.active);
+
+    if (reading.active) {
+      this.resolveIntents(effectiveDancerId, readingConfig, reading);
+    } else {
+      if (readingWasActive && readingConfig.on_exit) {
+        for (const intentName of readingConfig.on_exit) {
+          this.fireIntent(intentName, reading);
+        }
+      }
+      this.clearEdges(effectiveDancerId, readingConfig);
     }
   }
 
@@ -412,6 +484,9 @@ export class Runtime {
     this.dancerMeta.clear();
     this.lastEmitted.clear();
     this.velocityHistories.clear();
+    this.cohesionHistory = [];
+    this._leadId = null;
+    this._leadChallenger = null;
     this._tick = 0;
     this.initDancers(scene);
   }

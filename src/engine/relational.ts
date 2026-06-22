@@ -10,15 +10,23 @@ export interface RelationalQualities {
   energy_spread: number;   // 0-1, stddev of velocity across dancers (texture at equal mean)
   field_intensity: number; // 0-1, mean velocity across all dancers (room loudness — validator-restricted)
   convergence: number;     // 0-1, rate of change in |cohesion| (0.5 = steady, >0.5 = coming together)
+  lead_strength: number;   // 0-1, how strongly one dancer is leading the group (field follows them)
   contrast: number;        // 0-1, mean pairwise quality distance (kept for backwards compat)
   aggregate_energy: number;// 0-1, mean velocity (will become min in step 5)
 }
 
-const EMPTY: RelationalQualities = {
+export interface RelationalResult extends RelationalQualities {
+  leadId: string | null;       // id of the leading dancer (non-numeric; lives in _crowd.meta)
+  maxDissentId: string | null; // id of the most anti-correlated dancer (for broadcast routing)
+}
+
+const EMPTY: RelationalResult = {
   cohesion: 0, synchrony: 0, dissent: 0, unison: 1,
   fragmentation: 0, energy_spread: 0, field_intensity: 0,
-  convergence: 0.5,  // 0.5 = steady (no relationship yet to converge toward)
+  convergence: 0.5,
+  lead_strength: 0,
   contrast: 0, aggregate_energy: 0,
+  leadId: null, maxDissentId: null,
 };
 
 // Windowed linear regression slope — shared with the runtime trajectory gate.
@@ -63,7 +71,7 @@ export function computeRelational(
   velocityHistories: Map<string, number[]>,
   cohesionHistory: number[],  // mutable ring buffer owned by caller; persists between ticks
   windowSize: number = 20,
-): RelationalQualities {
+): RelationalResult {
   const ids = [...dancers.keys()].filter(id => !id.startsWith("_"));
   if (ids.length < 2) return EMPTY;
 
@@ -116,6 +124,53 @@ export function computeRelational(
   const slope = linearRegressionSlope(cohesionHistory);
   const convergence = 0.5 + Math.max(-0.5, Math.min(0.5, slope * CONVERGENCE_K));
 
+  // Lead strength: for each dancer, find the lag [1..5] at which their history
+  // best predicts the leave-one-out field (dancer is ahead of the group).
+  // lead_strength = the best such score; leadId = which dancer holds it.
+  // maxDissentId  = the dancer most anti-correlated with their field (for broadcast routing).
+  const LEAD_LAG_MAX = 5;
+  let lead_strength = 0;
+  let leadId: string | null = null;
+  let minCorr = 0;
+  let maxDissentId: string | null = null;
+
+  for (let i = 0; i < n; i++) {
+    const h = histories[i];
+    if (!h || h.length < LEAD_LAG_MAX + 2) continue;
+
+    // Leave-one-out field for dancer i (reuse same pattern as cohesion)
+    const fieldForI: number[] = new Array(w).fill(0);
+    let fieldCount = 0;
+    for (let j = 0; j < n; j++) {
+      const hj = histories[j];
+      if (j === i || !hj) continue;
+      for (let t = 0; t < w; t++) fieldForI[t] += hj[t] ?? 0;
+      fieldCount++;
+    }
+    if (fieldCount === 0) continue;
+    for (let t = 0; t < w; t++) fieldForI[t] /= fieldCount;
+
+    // Search lags 1..LEAD_LAG_MAX: dancer i at t-lag vs field at t
+    // i.e. pearson(h[0..w-lag], field[lag..w])
+    let bestLeadCorr = 0;
+    for (let lag = 1; lag <= LEAD_LAG_MAX; lag++) {
+      if (w - lag < 2) break;
+      const corr = pearson(h.slice(0, w - lag), fieldForI.slice(lag, w));
+      if (corr > bestLeadCorr) bestLeadCorr = corr;
+    }
+
+    if (bestLeadCorr > lead_strength) {
+      lead_strength = bestLeadCorr;
+      leadId = ids[i];
+    }
+
+    // Track most anti-correlated dancer for broadcast routing
+    if (corrPerDancer[i] !== undefined && corrPerDancer[i] < minCorr) {
+      minCorr = corrPerDancer[i];
+      maxDissentId = ids[i];
+    }
+  }
+
   // --- Unison: how tightly the group clusters in 13-D quality space ---
   const centroid: Record<string, number> = {};
   for (const q of SOLO_QUALITY_KEYS) {
@@ -167,5 +222,5 @@ export function computeRelational(
   // --- Aggregate energy: mean velocity (will become min in step 5) ---
   const aggregate_energy = field_intensity;
 
-  return { cohesion, synchrony, dissent, unison, fragmentation, energy_spread, field_intensity, convergence, contrast, aggregate_energy };
+  return { cohesion, synchrony, dissent, unison, fragmentation, energy_spread, field_intensity, convergence, lead_strength, contrast, aggregate_energy, leadId, maxDissentId };
 }

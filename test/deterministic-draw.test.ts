@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { roll } from "../src/primitives/roll.js";
+import { draw } from "../src/primitives/draw.js";
 
-describe("Roll deterministic mode", () => {
+describe("Draw deterministic mode", () => {
   it("always picks highest weight", () => {
     const options = [
       { action: "a", weight: 1 },
@@ -9,7 +9,7 @@ describe("Roll deterministic mode", () => {
       { action: "c", weight: 3 },
     ];
     for (let i = 0; i < 20; i++) {
-      expect(roll(options, true)?.action).toBe("b");
+      expect(draw(options, true)?.action).toBe("b");
     }
   });
 
@@ -19,7 +19,7 @@ describe("Roll deterministic mode", () => {
       { action: "second", weight: 5 },
     ];
     for (let i = 0; i < 20; i++) {
-      expect(roll(options, true)?.action).toBe("first");
+      expect(draw(options, true)?.action).toBe("first");
     }
   });
 
@@ -28,14 +28,14 @@ describe("Roll deterministic mode", () => {
       { action: "a", weight: 100 },
       { action: "b", weight: 0 },
     ];
-    expect(roll(options, false)?.action).toBe("a");
+    expect(draw(options, false)?.action).toBe("a");
   });
 
   it("returns null for empty pool in deterministic mode", () => {
-    expect(roll([], true)).toBeNull();
+    expect(draw([], true)).toBeNull();
   });
 
   it("returns null when all weights zero in deterministic mode", () => {
-    expect(roll([{ action: "a", weight: 0 }], true)).toBeNull();
+    expect(draw([{ action: "a", weight: 0 }], true)).toBeNull();
   });
 });

@@ -11,7 +11,7 @@ function makeDancer(id: string, velocity = 0.5): DancerState {
       verticality: 0, heading: 0, stillness: 0, periodicity: 0,
       groundedness: 0, cohesion: 0, synchrony: 0, dissent: 0,
       unison: 0, fragmentation: 0, energy_spread: 0,
-      field_intensity: 0, convergence: 0.5, contrast: 0, aggregate_energy: 0,
+      field_intensity: 0, convergence: 0.5, lead_strength: 0, contrast: 0, aggregate_energy: 0,
     },
     lastGesture: null,
     lastGestureTime: 0,
@@ -262,5 +262,56 @@ describe("convergence", () => {
     const r = computeRelational(dancers, histories, buf);
     expect(r.convergence).toBeLessThanOrEqual(1.0);
     expect(r.convergence).toBeGreaterThanOrEqual(0.0);
+  });
+});
+
+// --- lead_strength + leadId ---
+
+describe("lead_strength and leadId", () => {
+  it("detects the dancer whose history leads the field", () => {
+    // d1 leads by 2 frames: d1[0..w-2] should correlate with meanField[2..w]
+    // Build d1 as a rising ramp, d2 following it with a 2-frame lag
+    const w = 15;
+    const d1hist = Array.from({ length: w }, (_, i) => i / (w - 1));
+    const d2hist = [d1hist[0], d1hist[0], ...d1hist.slice(0, w - 2)]; // d2 lags d1 by 2
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const histories = new Map([["d1", d1hist], ["d2", d2hist]]);
+    const r = computeRelational(dancers, histories, []);
+    // d1 leads d2: lead_strength should be > 0 and leadId should be "d1"
+    expect(r.lead_strength).toBeGreaterThan(0);
+    expect(r.leadId).toBe("d1");
+  });
+
+  it("lead_strength is 0 and leadId is null when fewer than 2 dancers", () => {
+    const dancers = new Map([["d1", makeDancer("d1")]]);
+    const r = computeRelational(dancers, new Map([["d1", RISING]]), []);
+    expect(r.lead_strength).toBe(0);
+    expect(r.leadId).toBeNull();
+  });
+
+  it("lead_strength stays in 0..1", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const r = computeRelational(dancers, new Map([["d1", RISING], ["d2", FALLING]]), []);
+    expect(r.lead_strength).toBeGreaterThanOrEqual(0);
+    expect(r.lead_strength).toBeLessThanOrEqual(1);
+  });
+});
+
+// --- maxDissentId ---
+
+describe("maxDissentId", () => {
+  it("identifies the most anti-correlated dancer", () => {
+    const d1 = makeDancer("d1"); const d2 = makeDancer("d2"); const d3 = makeDancer("d3");
+    const dancers = new Map([["d1", d1], ["d2", d2], ["d3", d3]]);
+    // d1 and d2 rise together, d3 falls hard against them
+    const histories = new Map([["d1", RISING], ["d2", RISING], ["d3", FALLING]]);
+    const r = computeRelational(dancers, histories, []);
+    expect(r.maxDissentId).toBe("d3");
+  });
+
+  it("is null when all dancers are in sync", () => {
+    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
+    const r = computeRelational(dancers, new Map([["d1", RISING], ["d2", RISING]]), []);
+    expect(r.maxDissentId).toBeNull();
   });
 });
