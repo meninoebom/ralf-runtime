@@ -17,8 +17,6 @@ export interface SceneConfig {
   intents: Record<string, IntentOption[] | IntentPoolConfig>;
   translator: TranslatorConfig;
   _manifest?: TranslatorManifest;
-  /** @deprecated Use `translator` instead */
-  sonic_world?: SonicWorldConfig;
 }
 
 export interface IntentPoolConfig {
@@ -67,12 +65,6 @@ export interface IntentOption {
 export interface TranslatorConfig {
   type: string;
   port?: number;
-}
-
-export interface SonicWorldConfig {
-  type: "ableton" | "tonejs" | "osc";
-  port?: number;
-  samples?: string;
 }
 
 // ─── Translator Manifest ────────────────────────────────────────────────────

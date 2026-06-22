@@ -12,7 +12,7 @@ export class WsServer {
   private clients = new Set<WebSocket>();
   private lastPong = new Map<WebSocket, number>();
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-  private onLoadScene: ((scene: SceneConfig) => void) | null = null;
+  private onLoadScene: ((scene: unknown) => void) | null = null;
   private onGetState: (() => RuntimeState) | null = null;
   private onTranslatorState: ((update: Partial<TranslatorState>) => void) | null = null;
   private onUpdateScene: ((patch: Partial<SceneConfig>) => void) | null = null;
@@ -26,7 +26,7 @@ export class WsServer {
 
   constructor(private port: number) {}
 
-  setLoadSceneHandler(handler: (scene: SceneConfig) => void) {
+  setLoadSceneHandler(handler: (scene: unknown) => void) {
     this.onLoadScene = handler;
   }
 
@@ -150,8 +150,14 @@ export class WsServer {
   private handleMessage(ws: WebSocket, msg: { type: string; [k: string]: unknown }) {
     switch (msg.type) {
       case "loadScene":
-        this.onLoadScene?.(msg.scene as SceneConfig);
-        ws.send(JSON.stringify({ type: "sceneLoaded" }));
+        try {
+          // msg.scene is untrusted; the load handler runs it through the schema gate.
+          this.onLoadScene?.(msg.scene);
+          ws.send(JSON.stringify({ type: "sceneLoaded" }));
+        } catch (err) {
+          // Validation rejected the scene; report it. The running scene is untouched.
+          ws.send(JSON.stringify({ type: "error", message: (err as Error).message }));
+        }
         break;
       case "getState": {
         const state = this.onGetState?.();
@@ -193,6 +199,8 @@ export class WsServer {
           if (reloaded) {
             this.broadcast(JSON.stringify({ type: "scene", scene: reloaded }));
           }
+        }).catch((err) => {
+          ws.send(JSON.stringify({ type: "error", message: (err as Error).message }));
         });
         break;
       }
