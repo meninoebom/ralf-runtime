@@ -9,7 +9,7 @@ function makeDancer(id: string, velocity = 0.5): DancerState {
       velocity, acceleration: 0, jerkiness: 0, energy: 0,
       spatial_extent: 0, contraction: 0, symmetry: 0, coherence: 0,
       verticality: 0, heading: 0, stillness: 0, periodicity: 0,
-      groundedness: 0, cohesion: 0, synchrony: 0, dissent: 0,
+      groundedness: 0, cohesion: 0, dissent: 0,
       unison: 0, fragmentation: 0, energy_spread: 0,
       field_intensity: 0, convergence: 0.5, lead_strength: 0, contrast: 0, aggregate_energy: 0,
     },
@@ -48,31 +48,11 @@ describe("cohesion (mean-field, leave-one-out)", () => {
     expect(r.cohesion).toBe(0);
   });
 
-  it("is 0 and synchrony is 0 when fewer than 2 dancers", () => {
+  it("is 0 when fewer than 2 dancers", () => {
     const dancers = new Map([["d1", makeDancer("d1")]]);
     const histories = new Map([["d1", RISING]]);
     const r = computeRelational(dancers, histories, []);
     expect(r.cohesion).toBe(0);
-    expect(r.synchrony).toBe(0);
-  });
-});
-
-// --- synchrony deprecated alias ---
-
-describe("synchrony (deprecated clamped alias)", () => {
-  it("matches cohesion for positive correlation", () => {
-    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
-    const histories = new Map([["d1", RISING], ["d2", RISING]]);
-    const r = computeRelational(dancers, histories, []);
-    expect(r.synchrony).toBeCloseTo(r.cohesion, 5);
-  });
-
-  it("is 0 when cohesion is negative (anti-phase reads as 0 to old scenes)", () => {
-    const dancers = new Map([["d1", makeDancer("d1")], ["d2", makeDancer("d2")]]);
-    const histories = new Map([["d1", RISING], ["d2", FALLING]]);
-    const r = computeRelational(dancers, histories, []);
-    expect(r.synchrony).toBe(0);
-    expect(r.cohesion).toBeLessThan(0);
   });
 });
 
@@ -184,15 +164,24 @@ describe("energy_spread and field_intensity", () => {
   });
 });
 
-// --- aggregate_energy (mean for now, becomes min in step 5) ---
+// --- aggregate_energy (min velocity — shared floor) ---
 
 describe("aggregate_energy", () => {
-  it("equals field_intensity (both are mean velocity in step 2)", () => {
-    const d1 = makeDancer("d1", 0.3); const d2 = makeDancer("d2", 0.7);
+  it("is the min velocity, not the mean", () => {
+    const d1 = makeDancer("d1", 0.2); const d2 = makeDancer("d2", 0.8);
     const dancers = new Map([["d1", d1], ["d2", d2]]);
     const histories = new Map([["d1", RISING], ["d2", RISING]]);
     const r = computeRelational(dancers, histories, []);
-    expect(r.aggregate_energy).toBeCloseTo(r.field_intensity, 5);
+    expect(r.aggregate_energy).toBeCloseTo(0.2, 5); // min, not 0.5 (mean)
+    expect(r.aggregate_energy).toBeLessThan(r.field_intensity); // floor < average
+  });
+
+  it("cannot be raised by one dancer alone when the other is still", () => {
+    const d1 = makeDancer("d1", 0.0); const d2 = makeDancer("d2", 1.0);
+    const dancers = new Map([["d1", d1], ["d2", d2]]);
+    const histories = new Map([["d1", RISING], ["d2", RISING]]);
+    const r = computeRelational(dancers, histories, []);
+    expect(r.aggregate_energy).toBeCloseTo(0.0, 5); // d1 still → floor is 0
   });
 });
 

@@ -2,8 +2,6 @@ import type { DancerState, QualityName } from "../types.js";
 
 export interface RelationalQualities {
   cohesion: number;        // −1..1, mean-field velocity correlation (signed; negative = anti-phase)
-  /** @deprecated Use `cohesion`. Clamped alias kept for one release so existing scenes still work. */
-  synchrony: number;       // 0-1, max(0, cohesion)
   dissent: number;         // 0-1, fraction of dancers strongly anti-correlated with the field
   unison: number;          // 0-1, how tightly the group clusters in quality space (1 = all identical)
   fragmentation: number;   // 0-1, how strongly the group splits into two sub-groups
@@ -12,7 +10,7 @@ export interface RelationalQualities {
   convergence: number;     // 0-1, rate of change in |cohesion| (0.5 = steady, >0.5 = coming together)
   lead_strength: number;   // 0-1, how strongly one dancer is leading the group (field follows them)
   contrast: number;        // 0-1, mean pairwise quality distance (kept for backwards compat)
-  aggregate_energy: number;// 0-1, mean velocity (will become min in step 5)
+  aggregate_energy: number;// 0-1, min velocity (shared floor — one dancer cannot raise it alone)
 }
 
 export interface RelationalResult extends RelationalQualities {
@@ -21,7 +19,7 @@ export interface RelationalResult extends RelationalQualities {
 }
 
 const EMPTY: RelationalResult = {
-  cohesion: 0, synchrony: 0, dissent: 0, unison: 1,
+  cohesion: 0, dissent: 0, unison: 1,
   fragmentation: 0, energy_spread: 0, field_intensity: 0,
   convergence: 0.5,
   lead_strength: 0,
@@ -115,7 +113,6 @@ export function computeRelational(
   const cohesion = corrPerDancer.length > 0
     ? corrPerDancer.reduce((a, b) => a + b, 0) / corrPerDancer.length
     : 0;
-  const synchrony = Math.max(0, cohesion);
   const dissent = corrPerDancer.filter(c => c < -0.3).length / n;
 
   // Convergence: slope of |cohesion| over time, mapped to 0..1 (0.5 = steady)
@@ -219,8 +216,8 @@ export function computeRelational(
   }
   const contrast = contrastCount > 0 ? contrastSum / contrastCount : 0;
 
-  // --- Aggregate energy: mean velocity (will become min in step 5) ---
-  const aggregate_energy = field_intensity;
+  // --- Aggregate energy: min velocity (shared floor — one dancer cannot raise it alone) ---
+  const aggregate_energy = vels.length > 0 ? Math.min(...vels) : 0;
 
-  return { cohesion, synchrony, dissent, unison, fragmentation, energy_spread, field_intensity, convergence, lead_strength, contrast, aggregate_energy, leadId, maxDissentId };
+  return { cohesion, dissent, unison, fragmentation, energy_spread, field_intensity, convergence, lead_strength, contrast, aggregate_energy, leadId, maxDissentId };
 }

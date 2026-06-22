@@ -25,7 +25,7 @@ const ALL_QUALITIES: QualityName[] = [
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
-  "cohesion", "synchrony", "dissent", "unison", "fragmentation",
+  "cohesion", "dissent", "unison", "fragmentation",
   "energy_spread", "field_intensity", "convergence", "lead_strength", "contrast", "aggregate_energy",
 ];
 
@@ -186,7 +186,6 @@ export class Runtime {
         this.dancers.set("_crowd", crowd);
       }
       crowd.qualities.cohesion = relational.cohesion;
-      crowd.qualities.synchrony = relational.synchrony; // deprecated alias, remove after crowd-demo migrates
       crowd.qualities.dissent = relational.dissent;
       crowd.qualities.unison = relational.unison;
       crowd.qualities.fragmentation = relational.fragmentation;

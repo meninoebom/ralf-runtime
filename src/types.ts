@@ -113,7 +113,6 @@ export type QualityName =
   | "periodicity"
   | "groundedness"
   | "cohesion"
-  | "synchrony"
   | "dissent"
   | "unison"
   | "fragmentation"

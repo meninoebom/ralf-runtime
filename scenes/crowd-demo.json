@@ -24,8 +24,8 @@
     {
       "id": "crowd-sync",
       "scope": "crowd",
-      "mix": { "synchrony": 1.0 },
-      "gate": { "synchrony": { "above": 0.4 } },
+      "mix": { "cohesion": 1.0 },
+      "gate": { "cohesion": { "above": 0.4 } },
       "intents": [
         { "intent": "reward_sync", "mode": "continuous" }
       ]
