@@ -37,5 +37,5 @@
       { "action": "set/filter_cutoff", "weight": 1 }
     ]
   },
-  "sonic_world": { "type": "ableton", "port": 12000 }
+  "translator": { "type": "ableton", "port": 12000 }
 }

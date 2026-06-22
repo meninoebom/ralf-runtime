@@ -4,7 +4,7 @@ import { Runtime } from "./engine/runtime.js";
 import { OscServer } from "./transport/osc-server.js";
 import { WsServer } from "./transport/ws-server.js";
 import { loadScene, listScenes, saveScene } from "./scenes/loader.js";
-import { validateScene } from "./scenes/validator.js";
+import { assertSceneValid, SceneValidationError, type ValidationError } from "./scenes/validator.js";
 import { log, setLogFile } from "./logging.js";
 import type { SceneConfig, QualityName, TranslatorManifest } from "./types.js";
 
@@ -12,6 +12,10 @@ const OSC_IN_PORT = parseInt(process.env.RALF_OSC_IN_PORT ?? "6449", 10);
 const OSC_OUT_PORT = parseInt(process.env.RALF_OSC_OUT_PORT ?? "12000", 10);
 const WS_PORT = parseInt(process.env.RALF_WS_PORT ?? "8765", 10);
 const CONSOLE_PORT = parseInt(process.env.RALF_CONSOLE_PORT ?? "3300", 10);
+
+function logSceneWarnings(warnings: ValidationError[]) {
+  for (const w of warnings) log("scene", `Scene warning: ${w.path}: ${w.message}`);
+}
 
 async function main() {
   const startTime = new Date().toISOString();
@@ -47,12 +51,19 @@ async function main() {
       }
     }
 
-    // Validate scene (with manifest if available)
-    const errors = validateScene(scene, manifest ?? undefined);
-    if (errors.length > 0) {
-      for (const err of errors) {
-        log("error", `Scene validation: ${err.path} — ${err.message}`);
+    // Validate the scene and enforce the verdict: refuse to start on a blocking error
+    // rather than running a silently-wrong scene. Warnings are logged but allow startup.
+    try {
+      const gate = assertSceneValid(scene, manifest ?? undefined);
+      scene = gate.scene;
+      logSceneWarnings(gate.warnings);
+    } catch (err) {
+      if (err instanceof SceneValidationError) {
+        for (const e of err.errors) log("error", `Scene rejected: ${e.path}: ${e.message}`);
+        log("error", `Refusing to start: scene "${scene.name}" has ${err.errors.length} blocking error(s). Fix the scene and restart.`);
+        process.exit(1);
       }
+      throw err;
     }
   } else {
     // Default scene for quick start
@@ -108,9 +119,14 @@ async function main() {
   // WebSocket transport
   const ws = new WsServer(WS_PORT);
   ws.setLoadSceneHandler((newScene) => {
-    runtime.loadScene(newScene);
+    // `newScene` is untrusted client JSON. The schema (Layer 1) validates its shape
+    // before anything is loaded. Throws SceneValidationError on a blocking finding;
+    // the WS layer reports it to the client and the running scene is left untouched.
+    const gate = assertSceneValid(newScene, manifest ?? undefined);
+    logSceneWarnings(gate.warnings);
+    runtime.loadScene(gate.scene);
     runtime.start();
-    log("scene", `Scene loaded via WebSocket: ${newScene.name}`);
+    log("scene", `Scene loaded via WebSocket: ${gate.scene.name}`);
   });
   ws.setGetStateHandler(() => runtime.getState());
   ws.setTranslatorStateHandler((update) => {
@@ -129,9 +145,11 @@ async function main() {
   ws.setReloadSceneHandler(async () => {
     const name = runtime.getScene().name;
     const reloaded = await loadScene(name);
-    runtime.loadScene(reloaded);
+    const gate = assertSceneValid(reloaded, manifest ?? undefined);
+    logSceneWarnings(gate.warnings);
+    runtime.loadScene(gate.scene);
     log("scene", `Scene reloaded from disk: ${name}`);
-    return reloaded;
+    return gate.scene;
   });
 
   ws.setGetManifestHandler(() => manifest);
@@ -148,9 +166,11 @@ async function main() {
 
   ws.setSwitchSceneHandler(async (name: string) => {
     const loaded = await loadScene(name);
-    runtime.loadScene(loaded);
+    const gate = assertSceneValid(loaded, manifest ?? undefined);
+    logSceneWarnings(gate.warnings);
+    runtime.loadScene(gate.scene);
     log("scene", `Switched to scene: ${name}`);
-    return loaded;
+    return gate.scene;
   });
 
   // Wire outputs
