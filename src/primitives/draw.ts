@@ -1,17 +1,18 @@
 import type { IntentOption } from "../types.js";
 
 /**
- * Roll: weighted random selection from an intent's action pool.
+ * Draw: weighted random selection from an intent's action pool.
  *
- * This is what makes Ralf feel like a conversation, not a remote control.
- * Same intent, different outcome each time — shaped by tendencies.
+ * Like drawing from a deck — the tendencies (weights) stack the deck,
+ * but which card you draw still varies. This is what makes Ralf feel
+ * like a conversation, not a remote control.
  *
  * When deterministic=true (learning mode), always picks the highest-weight
  * option. Ties go to the first occurrence.
  *
  * Returns null if the pool is empty or all weights are zero.
  */
-export function roll(options: IntentOption[], deterministic = false): IntentOption | null {
+export function draw(options: IntentOption[], deterministic = false): IntentOption | null {
   if (options.length === 0) return null;
 
   const totalWeight = options.reduce((sum, opt) => sum + Math.max(0, opt.weight), 0);

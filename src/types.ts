@@ -40,6 +40,7 @@ export interface ReadingConfig {
   intents?: ReadingIntent[];
   on_exit?: string[];          // intent names to fire on falling edge
   trajectory?: { window: number; above?: number; below?: number };
+  scope?: "per_dancer" | "crowd" | "broadcast"; // default "per_dancer" (real dancers only, skips _crowd)
 }
 
 /**
@@ -111,13 +112,21 @@ export type QualityName =
   | "stillness"
   | "periodicity"
   | "groundedness"
-  | "synchrony"
+  | "cohesion"
+  | "dissent"
+  | "unison"
+  | "fragmentation"
+  | "energy_spread"
+  | "field_intensity"
+  | "convergence"
+  | "lead_strength"
   | "contrast"
-  | "aggregate_velocity";
+  | "aggregate_energy";
 
 export interface DancerState {
   id: string;
   qualities: Record<QualityName, number>;
+  meta?: Record<string, string>; // non-numeric state (e.g. lead_id, max_dissent_id) for broadcast routing
   lastGesture: string | null;
   lastGestureTime: number;
   stale?: boolean;

@@ -12,7 +12,7 @@ src/
 ├── index.ts              # Entry point — wires OSC, WebSocket, and Runtime together
 ├── engine/
 │   ├── runtime.ts        # The tick loop: evaluates readings, resolves intents with edge detection
-│   └── relational.ts     # Cross-dancer qualities: synchrony, contrast, aggregate_velocity
+│   └── relational.ts     # Cross-dancer qualities: synchrony, contrast, aggregate_energy
 ├── primitives/
 │   ├── adaptive-range.ts # Self-calibrating 0-1 normalizer (ported from States of Being)
 │   ├── sense.ts          # Wraps AdaptiveRange per quality per dancer
@@ -78,9 +78,16 @@ Optional gate on readings that filters by direction of change. Computed as windo
 
 ### Relational qualities (crowd mode)
 When >1 non-virtual dancer is active, the runtime auto-creates a `_crowd` virtual dancer with three qualities:
-- **synchrony**: mean pairwise Pearson correlation of velocity histories (20-frame window). Only rewards positive correlation (negative clamped to 0).
-- **contrast**: mean pairwise L2 distance of quality vectors, normalized by sqrt(numQualities).
-- **aggregate_velocity**: mean velocity across all active dancers.
+- **cohesion** (−1..1): mean-field velocity correlation, leave-one-out. Negative = deliberate anti-phase (counterpoint), not the absence of relationship.
+- **synchrony** (0..1): deprecated alias for `max(0, cohesion)`. Kept for one release so `crowd-demo.json` still works. Migrate scenes to `cohesion`.
+- **dissent** (0..1): fraction of dancers whose correlation with the field is below −0.3. Anti-domination signal — how many bodies are pushing back.
+- **unison** (0..1): how tightly all dancers cluster in 13-D quality space. 1 = identical, 0 = maximally dispersed.
+- **fragmentation** (0..1): largest gap in sorted velocity projections. Detects the group splitting into sub-groups.
+- **energy_spread** (0..1): stddev of velocity. Distinguishes "all medium" from "half still, half wild" at the same `field_intensity`.
+- **field_intensity** (0..1): mean velocity (room loudness). Validator-restricted — may not gate a reward action alone (monotonic; a dominator can raise it).
+- **convergence** (0..1, 0.5=steady): slope of `|cohesion|` over time. Above 0.5 = group coming into relation; below 0.5 = separating. Reuses `linearRegressionSlope` from `relational.ts`.
+- **contrast** (0..1): mean pairwise L2 distance, O(n²). Kept for backwards compat; `1 − unison` is the O(n) equivalent.
+- **aggregate_energy** (0..1): mean velocity for now; becomes `min` (shared floor) in step 5.
 
 Scene readings can target `_crowd` like any dancer. The `_crowd` dancer is deleted when ≤1 real dancer remains. Relational computation happens after staleness decay but before readings evaluation.
 

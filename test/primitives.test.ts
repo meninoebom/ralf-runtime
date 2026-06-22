@@ -4,7 +4,7 @@ import { Sense } from "../src/primitives/sense.js";
 import { Recognize } from "../src/primitives/recognize.js";
 import { Accumulate } from "../src/primitives/accumulate.js";
 import { combine } from "../src/primitives/combine.js";
-import { roll } from "../src/primitives/roll.js";
+import { draw } from "../src/primitives/draw.js";
 import { evaluateGate } from "../src/primitives/gate.js";
 import { act } from "../src/primitives/act.js";
 
@@ -90,20 +90,20 @@ describe("Roll", () => {
       { action: "a", weight: 100 },
       { action: "b", weight: 0 },
     ];
-    const result = roll(options);
+    const result = draw(options);
     expect(result?.action).toBe("a");
   });
 
   it("returns null for empty pool", () => {
-    expect(roll([])).toBeNull();
+    expect(draw([])).toBeNull();
   });
 
   it("returns null when all weights are zero", () => {
-    expect(roll([{ action: "a", weight: 0 }])).toBeNull();
+    expect(draw([{ action: "a", weight: 0 }])).toBeNull();
   });
 
   it("ignores negative weights", () => {
-    const result = roll([
+    const result = draw([
       { action: "a", weight: -5 },
       { action: "b", weight: 10 },
     ]);

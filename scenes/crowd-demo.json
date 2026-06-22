@@ -23,16 +23,18 @@
     },
     {
       "id": "crowd-sync",
-      "mix": { "synchrony": 1.0 },
-      "gate": { "synchrony": { "above": 0.4 } },
+      "scope": "crowd",
+      "mix": { "cohesion": 1.0 },
+      "gate": { "cohesion": { "above": 0.4 } },
       "intents": [
         { "intent": "reward_sync", "mode": "continuous" }
       ]
     },
     {
       "id": "crowd-energy",
-      "mix": { "aggregate_velocity": 1.0 },
-      "gate": { "aggregate_velocity": { "above": 0.5 } },
+      "scope": "crowd",
+      "mix": { "aggregate_energy": 1.0 },
+      "gate": { "aggregate_energy": { "above": 0.5 } },
       "intents": ["group_energy"]
     },
     {

@@ -3,13 +3,15 @@ import type { SceneConfig, IntentPoolConfig, TranslatorManifest, ManifestAction 
 export interface ValidationError {
   path: string;
   message: string;
+  severity?: "error" | "warning"; // defaults to "error" when absent
 }
 
 const VALID_QUALITIES = new Set([
   "velocity", "acceleration", "jerkiness", "energy", "spatial_extent",
   "contraction", "symmetry", "coherence", "verticality", "heading",
   "stillness", "periodicity", "groundedness",
-  "synchrony", "contrast", "aggregate_velocity",
+  "cohesion", "dissent", "unison", "fragmentation",
+  "energy_spread", "field_intensity", "convergence", "lead_strength", "contrast", "aggregate_energy",
 ]);
 
 function getPool(entry: unknown): { pool: unknown[]; deterministic?: boolean } | null {
@@ -52,6 +54,17 @@ export function validateScene(scene: SceneConfig, manifest?: TranslatorManifest)
       if (!VALID_QUALITIES.has(quality)) {
         errors.push({ path: `${prefix}.mix.${quality}`, message: `Unknown quality name: "${quality}"` });
       }
+    }
+
+    // Anti-domination lint: field_intensity is monotonic — a single dominant dancer can raise it alone.
+    // Warn when it is the only quality in the mix (no non-monotonic signal to balance it).
+    const mixKeys = Object.keys(reading.mix);
+    if (mixKeys.length === 1 && mixKeys[0] === "field_intensity") {
+      errors.push({
+        path: `${prefix}.mix`,
+        message: `Reading mixes only field_intensity, which is monotonic — one dancer can trigger it alone. Add a non-monotonic quality (cohesion, dissent, unison, etc.) to the mix or gate.`,
+        severity: "warning",
+      });
     }
 
     // Check gate quality names

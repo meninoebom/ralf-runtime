@@ -183,6 +183,21 @@ describe("Manifest-aware validation", () => {
     expect(validateScene(scene)).toEqual([]);
   });
 
+  it("warns when field_intensity is the only mix quality (anti-domination lint)", () => {
+    const scene = validScene();
+    scene.readings[0].mix = { field_intensity: 1.0 };
+    const errors = validateScene(scene);
+    expect(errors.length).toBe(1);
+    expect(errors[0].severity).toBe("warning");
+    expect(errors[0].message).toContain("monotonic");
+  });
+
+  it("does not warn when field_intensity is mixed with a non-monotonic quality", () => {
+    const scene = validScene();
+    scene.readings[0].mix = { field_intensity: 0.5, cohesion: 0.5 };
+    expect(validateScene(scene)).toEqual([]);
+  });
+
   it("validates IntentPoolConfig format", () => {
     const scene = validScene();
     scene.intents = {
